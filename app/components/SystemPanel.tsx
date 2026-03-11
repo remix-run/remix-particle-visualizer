@@ -1,0 +1,141 @@
+import { useState } from "react";
+import type { SystemSettings } from "~/lib/types";
+
+interface Props {
+  settings: SystemSettings;
+  onSettingsChange: (s: SystemSettings) => void;
+  fps: number;
+}
+
+export default function SystemPanel({ settings, onSettingsChange, fps }: Props) {
+  const [open, setOpen] = useState(false);
+
+  const update = (partial: Partial<SystemSettings>) =>
+    onSettingsChange({ ...settings, ...partial });
+
+  return (
+    <div className="system-panel">
+      <div className="system-top-row">
+        {settings.showFps && (
+          <div className="fps-counter">{fps} FPS</div>
+        )}
+        <button
+          className="system-toggle"
+          onClick={() => setOpen(!open)}
+          title="System Settings"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+      </div>
+
+      {open && (
+        <div className="system-dropdown">
+          <div className="panel-header">System Settings</div>
+
+          <div className="control-row">
+            <label className="control-label">Particles</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={1000}
+                max={100000}
+                step={1000}
+                value={settings.particleCount}
+                onChange={(e) => update({ particleCount: parseInt(e.target.value) })}
+                className="control-slider"
+              />
+              <span className="control-value">{(settings.particleCount / 1000).toFixed(0)}k</span>
+            </div>
+          </div>
+
+          <div className="control-row">
+            <label className="control-label">Point Size</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={0.1}
+                max={5}
+                step={0.1}
+                value={settings.pointSize}
+                onChange={(e) => update({ pointSize: parseFloat(e.target.value) })}
+                className="control-slider"
+              />
+              <span className="control-value">{settings.pointSize.toFixed(1)}</span>
+            </div>
+          </div>
+
+          <div className="control-row">
+            <label className="control-label">Background</label>
+            <input
+              type="color"
+              value={settings.backgroundColor}
+              onChange={(e) => update({ backgroundColor: e.target.value })}
+              className="color-picker"
+            />
+          </div>
+
+          <div className="control-row">
+            <label className="control-label">Bloom</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={0}
+                max={3}
+                step={0.05}
+                value={settings.bloomStrength}
+                onChange={(e) => update({ bloomStrength: parseFloat(e.target.value) })}
+                className="control-slider"
+              />
+              <span className="control-value">{settings.bloomStrength.toFixed(1)}</span>
+            </div>
+          </div>
+
+          <div className="control-row">
+            <label className="control-label">Bloom Threshold</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={settings.bloomThreshold}
+                onChange={(e) => update({ bloomThreshold: parseFloat(e.target.value) })}
+                className="control-slider"
+              />
+              <span className="control-value">{settings.bloomThreshold.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="control-row">
+            <label className="control-label">Camera FOV</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={30}
+                max={120}
+                step={1}
+                value={settings.cameraFov}
+                onChange={(e) => update({ cameraFov: parseInt(e.target.value) })}
+                className="control-slider"
+              />
+              <span className="control-value">{settings.cameraFov}°</span>
+            </div>
+          </div>
+
+          <div className="control-row">
+            <label className="control-label">Show FPS</label>
+            <button
+              className={`toggle-btn ${settings.showFps ? "toggle-on" : ""}`}
+              onClick={() => update({ showFps: !settings.showFps })}
+            >
+              {settings.showFps ? "ON" : "OFF"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

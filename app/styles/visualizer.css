@@ -1,0 +1,456 @@
+/* ====================== Base ====================== */
+.visualizer-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000408;
+  font-family: "JetBrains Mono", monospace;
+  color: #e0e0e8;
+  text-transform: uppercase;
+}
+
+/* ================== Loading =================== */
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000408;
+}
+
+.loading-text {
+  font-size: 1.1rem;
+  color: #6a7a8a;
+  animation: pulse-text 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-text {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* ====================== HUD ====================== */
+.hud {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hud-logo {
+  height: 18px;
+  width: auto;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.hud-title {
+  font-size: 0.85rem;
+  font-weight: 400;
+  margin: 0;
+  color: #ebeff2;
+  letter-spacing: 0.08em;
+}
+
+.hud-prefix {
+  color: #5a6a7a;
+}
+
+.hud-desc {
+  font-size: 0.85rem;
+  margin: 10px 0 0;
+  color: #7a8a9a;
+}
+
+/* ================ System Panel ================ */
+.system-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.system-top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.system-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 4, 8, 0.7);
+  backdrop-filter: blur(12px);
+  color: #6a7a8a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.system-toggle:hover {
+  background: rgba(10, 20, 30, 0.8);
+  color: #2dacf9;
+  border-color: rgba(45, 172, 249, 0.3);
+}
+
+.fps-counter {
+  font-size: 0.75rem;
+  color: #7ce95a;
+  background: rgba(0, 4, 8, 0.6);
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+}
+
+.system-dropdown {
+  background: rgba(0, 4, 12, 0.88);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(45, 172, 249, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  min-width: 240px;
+  animation: slide-down 0.2s ease-out;
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============= Control Panel (Viz) ============= */
+.control-panel {
+  position: absolute;
+  top: 70px;
+  right: 20px;
+  z-index: 15;
+  background: rgba(0, 4, 12, 0.78);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(45, 172, 249, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  min-width: 220px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+/* ============= Shared control styles ============= */
+.panel-header {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #fa73da;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.control-row {
+  margin-bottom: 10px;
+}
+
+.control-row:last-child {
+  margin-bottom: 0;
+}
+
+.control-label {
+  display: block;
+  font-size: 0.78rem;
+  color: #8a99aa;
+  margin-bottom: 4px;
+}
+
+.control-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.control-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #2dacf9;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.control-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.control-value {
+  font-size: 0.72rem;
+  color: #2dacf9;
+  min-width: 40px;
+  text-align: right;
+}
+
+.color-picker {
+  width: 40px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  padding: 1px;
+}
+
+.toggle-btn {
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #6a7a8a;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-on {
+  background: rgba(45, 172, 249, 0.15);
+  border-color: rgba(45, 172, 249, 0.4);
+  color: #2dacf9;
+}
+
+/* =============== Morph Slider =============== */
+.morph-slider-container {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: min(90vw, 600px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.morph-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 4px;
+}
+
+.morph-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #5a6a7a;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.morph-label:hover {
+  color: #8a9aaa;
+}
+
+.morph-label-active {
+  color: #ebeff2;
+  text-shadow: 0 0 12px rgba(45, 172, 249, 0.5);
+}
+
+.morph-track {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.morph-track-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #2dacf9, #7ce95a, #ffdf5f, #fa73da);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.morph-thumb {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ebeff2;
+  border: 2px solid #2dacf9;
+  box-shadow: 0 0 12px rgba(45, 172, 249, 0.5);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: box-shadow 0.2s;
+}
+
+.morph-stop {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: all 0.3s;
+}
+
+.morph-stop-active {
+  background: #2dacf9;
+  box-shadow: 0 0 8px rgba(45, 172, 249, 0.6);
+}
+
+.morph-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.morph-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 4, 12, 0.7);
+  backdrop-filter: blur(12px);
+  color: #6a7a8a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.morph-btn:hover:not(:disabled) {
+  background: rgba(10, 20, 30, 0.8);
+  color: #2dacf9;
+  border-color: rgba(45, 172, 249, 0.4);
+}
+
+.morph-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ================ Code Editor ================ */
+.editor-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: rgba(0, 4, 10, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(45, 172, 249, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 45vh;
+  animation: slide-up 0.25s ease-out;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.editor-title {
+  font-size: 0.82rem;
+  color: #6a7a8a;
+}
+
+.editor-title strong {
+  color: #2dacf9;
+}
+
+.editor-error {
+  font-size: 0.75rem;
+  color: #ff3c32;
+  background: rgba(255, 60, 50, 0.1);
+  padding: 3px 10px;
+  border-radius: 4px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-done-btn {
+  margin-left: auto;
+  font-size: 0.8rem;
+  padding: 5px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(45, 172, 249, 0.3);
+  background: rgba(45, 172, 249, 0.12);
+  color: #2dacf9;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.editor-done-btn:hover {
+  background: rgba(45, 172, 249, 0.25);
+  border-color: rgba(45, 172, 249, 0.5);
+}
+
+.editor-body {
+  flex: 1;
+  overflow: hidden;
+  text-transform: none;
+}
+
+.editor-body .cm-editor {
+  height: 100%;
+}
+
+.editor-loading {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 45vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 4, 10, 0.95);
+  color: #5a6a7a;
+  font-size: 0.9rem;
+  z-index: 30;
+}

@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "JetBrains Mono", monospace;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+html,
+body {
+  background-color: #000408;
+  color-scheme: dark;
+  overflow: hidden;
+  height: 100%;
+}
