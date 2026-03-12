@@ -3,7 +3,7 @@
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #000408;
+  background: #000000;
   font-family: "JetBrains Mono", monospace;
   color: #e0e0e8;
   text-transform: uppercase;
@@ -16,12 +16,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000408;
+  background: #000000;
 }
 
 .loading-text {
   font-size: 1.1rem;
-  color: #6a7a8a;
+  color: #666666;
   animation: pulse-text 1.5s ease-in-out infinite;
 }
 
@@ -50,18 +50,18 @@
   font-size: 0.85rem;
   font-weight: 400;
   margin: 0;
-  color: #ebeff2;
+  color: #e0e0e0;
   letter-spacing: 0.08em;
 }
 
 .hud-prefix {
-  color: #5a6a7a;
+  color: #555555;
 }
 
 .hud-desc {
   font-size: 0.85rem;
   margin: 10px 0 0;
-  color: #7a8a9a;
+  color: #777777;
 }
 
 /* ================ System Panel ================ */
@@ -87,9 +87,9 @@
   height: 36px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 4, 8, 0.7);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(12px);
-  color: #6a7a8a;
+  color: #666666;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -98,15 +98,15 @@
 }
 
 .system-toggle:hover {
-  background: rgba(10, 20, 30, 0.8);
-  color: #2dacf9;
-  border-color: rgba(45, 172, 249, 0.3);
+  background: rgba(20, 20, 20, 0.8);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .fps-counter {
   font-size: 0.75rem;
-  color: #7ce95a;
-  background: rgba(0, 4, 8, 0.6);
+  color: #999999;
+  background: rgba(0, 0, 0, 0.6);
   height: 36px;
   padding: 0 8px;
   border-radius: 8px;
@@ -116,9 +116,9 @@
 }
 
 .system-dropdown {
-  background: rgba(0, 4, 12, 0.88);
+  background: rgba(0, 0, 0, 0.88);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(45, 172, 249, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 12px;
   min-width: 240px;
@@ -136,9 +136,9 @@
   top: 70px;
   right: 20px;
   z-index: 15;
-  background: rgba(0, 4, 12, 0.78);
+  background: rgba(0, 0, 0, 0.78);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(45, 172, 249, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 12px;
   min-width: 220px;
@@ -151,7 +151,7 @@
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #fa73da;
+  color: #888888;
   margin-bottom: 10px;
   font-weight: 600;
 }
@@ -167,7 +167,7 @@
 .control-label {
   display: block;
   font-size: 0.78rem;
-  color: #8a99aa;
+  color: #888888;
   margin-bottom: 4px;
 }
 
@@ -193,7 +193,7 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #2dacf9;
+  background: #ffffff;
   border: 2px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
   transition: transform 0.15s;
@@ -205,7 +205,7 @@
 
 .control-value {
   font-size: 0.72rem;
-  color: #2dacf9;
+  color: #cccccc;
   min-width: 40px;
   text-align: right;
 }
@@ -226,15 +226,15 @@
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.05);
-  color: #6a7a8a;
+  color: #666666;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .toggle-on {
-  background: rgba(45, 172, 249, 0.15);
-  border-color: rgba(45, 172, 249, 0.4);
-  color: #2dacf9;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
 }
 
 /* =============== Morph Slider =============== */
@@ -261,7 +261,7 @@
 .morph-label {
   font-size: 0.72rem;
   font-weight: 500;
-  color: #5a6a7a;
+  color: #555555;
   background: none;
   border: none;
   cursor: pointer;
@@ -273,12 +273,12 @@
 }
 
 .morph-label:hover {
-  color: #8a9aaa;
+  color: #999999;
 }
 
 .morph-label-active {
-  color: #ebeff2;
-  text-shadow: 0 0 12px rgba(45, 172, 249, 0.5);
+  color: #e0e0e0;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
 }
 
 .morph-track {
@@ -295,7 +295,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(90deg, #2dacf9, #7ce95a, #ffdf5f, #fa73da);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.2));
   border-radius: 3px;
   pointer-events: none;
 }
@@ -306,9 +306,9 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #ebeff2;
-  border: 2px solid #2dacf9;
-  box-shadow: 0 0 12px rgba(45, 172, 249, 0.5);
+  background: #e0e0e0;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
   transform: translate(-50%, -50%);
   pointer-events: none;
   transition: box-shadow 0.2s;
@@ -327,8 +327,8 @@
 }
 
 .morph-stop-active {
-  background: #2dacf9;
-  box-shadow: 0 0 8px rgba(45, 172, 249, 0.6);
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
 }
 
 .morph-buttons {
@@ -341,9 +341,9 @@
   height: 32px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 4, 12, 0.7);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(12px);
-  color: #6a7a8a;
+  color: #666666;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -352,9 +352,9 @@
 }
 
 .morph-btn:hover:not(:disabled) {
-  background: rgba(10, 20, 30, 0.8);
-  color: #2dacf9;
-  border-color: rgba(45, 172, 249, 0.4);
+  background: rgba(20, 20, 20, 0.8);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .morph-btn:disabled {
@@ -369,9 +369,9 @@
   left: 0;
   right: 0;
   z-index: 30;
-  background: rgba(0, 4, 10, 0.95);
+  background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(45, 172, 249, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
   height: 45vh;
@@ -394,11 +394,11 @@
 
 .editor-title {
   font-size: 0.82rem;
-  color: #6a7a8a;
+  color: #666666;
 }
 
 .editor-title strong {
-  color: #2dacf9;
+  color: #cccccc;
 }
 
 .editor-error {
@@ -418,16 +418,16 @@
   font-size: 0.8rem;
   padding: 5px 16px;
   border-radius: 6px;
-  border: 1px solid rgba(45, 172, 249, 0.3);
-  background: rgba(45, 172, 249, 0.12);
-  color: #2dacf9;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #cccccc;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .editor-done-btn:hover {
-  background: rgba(45, 172, 249, 0.25);
-  border-color: rgba(45, 172, 249, 0.5);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .editor-body {
@@ -449,8 +449,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 4, 10, 0.95);
-  color: #5a6a7a;
+  background: rgba(0, 0, 0, 0.95);
+  color: #555555;
   font-size: 0.9rem;
   z-index: 30;
 }

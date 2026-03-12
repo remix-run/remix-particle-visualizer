@@ -38,7 +38,7 @@ export interface SystemSettings {
 export const DEFAULT_SETTINGS: SystemSettings = {
   particleCount: 20000,
   pointSize: 0.8,
-  backgroundColor: "#000408",
+  backgroundColor: "#000000",
   bloomStrength: 1.0,
   bloomThreshold: 0.02,
   cameraFov: 60,
