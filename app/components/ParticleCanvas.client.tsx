@@ -59,6 +59,7 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
 
       engine.updateSettings(settingsRef.current);
       particles.setPointSize(settingsRef.current.pointSize);
+      particles.setSeparation(settingsRef.current.particleSeparation);
 
       const { fnA, fnB, blend } = getActiveFnRef.current();
       particles.update(fnA, fnB, blend, time, controlMgr, THREE);

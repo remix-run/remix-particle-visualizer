@@ -47,6 +47,8 @@ export class ParticleSystem {
   private targetB = new THREE.Vector3();
   private colorA = new THREE.Color();
   private colorB = new THREE.Color();
+  private currentPointSize = 0.5;
+  private separation = 0.40;
 
   init(scene: THREE.Scene, count: number, pointSize: number) {
     this.dispose(scene);
@@ -85,9 +87,14 @@ export class ParticleSystem {
   }
 
   setPointSize(size: number) {
+    this.currentPointSize = size;
     if (this.material) {
       this.material.uniforms.uPointSize.value = size;
     }
+  }
+
+  setSeparation(value: number) {
+    this.separation = value;
   }
 
   update(
@@ -113,15 +120,18 @@ export class ParticleSystem {
 
     controlMgr.beginFrame();
 
+    const sep = this.separation;
+
     if (!fnB || blend < 0.001) {
       for (let i = 0; i < count; i++) {
         this.targetA.set(0, 0, 0);
         this.colorA.setRGB(1, 1, 1);
         fnA(i, count, this.targetA, this.colorA, time, THREELib, addControl, setInfo, annotate);
         const idx = i * 3;
-        positions[idx] = this.targetA.x;
-        positions[idx + 1] = this.targetA.y;
-        positions[idx + 2] = this.targetA.z;
+        const h = i * 2.3999;
+        positions[idx] = this.targetA.x + Math.sin(h) * sep;
+        positions[idx + 1] = this.targetA.y + Math.cos(h * 1.731) * sep;
+        positions[idx + 2] = this.targetA.z + Math.sin(h * 2.419) * sep;
         colors[idx] = this.colorA.r;
         colors[idx + 1] = this.colorA.g;
         colors[idx + 2] = this.colorA.b;
@@ -146,9 +156,10 @@ export class ParticleSystem {
 
         const idx = i * 3;
         const invT = 1 - t;
-        positions[idx] = this.targetA.x * invT + this.targetB.x * t;
-        positions[idx + 1] = this.targetA.y * invT + this.targetB.y * t;
-        positions[idx + 2] = this.targetA.z * invT + this.targetB.z * t;
+        const h = i * 2.3999;
+        positions[idx] = this.targetA.x * invT + this.targetB.x * t + Math.sin(h) * sep;
+        positions[idx + 1] = this.targetA.y * invT + this.targetB.y * t + Math.cos(h * 1.731) * sep;
+        positions[idx + 2] = this.targetA.z * invT + this.targetB.z * t + Math.sin(h * 2.419) * sep;
         colors[idx] = this.colorA.r * invT + this.colorB.r * t;
         colors[idx + 1] = this.colorA.g * invT + this.colorB.g * t;
         colors[idx + 2] = this.colorA.b * invT + this.colorB.b * t;

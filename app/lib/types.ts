@@ -28,6 +28,7 @@ export interface Preset {
 export interface SystemSettings {
   particleCount: number;
   pointSize: number;
+  particleSeparation: number;
   backgroundColor: string;
   bloomStrength: number;
   bloomThreshold: number;
@@ -37,9 +38,10 @@ export interface SystemSettings {
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   particleCount: 20000,
-  pointSize: 0.8,
+  pointSize: 0.3,
+  particleSeparation: 0.40,
   backgroundColor: "#000000",
-  bloomStrength: 1.0,
+  bloomStrength: 2.0,
   bloomThreshold: 0.02,
   cameraFov: 60,
   showFps: true,

@@ -117,9 +117,13 @@ if (i < trunkCount) {
   const sinTheta = Math.sin(theta);
   const wisp = 1.0 + 0.5 * Math.sin(t * 200 + clusterSeed * 3);
 
+  const yNoise1 = Math.sin(ci * 1.37 + clusterSeed * 5.1) * 0.6;
+  const yNoise2 = Math.cos(ci * 0.73 + clusterSeed * 3.3) * 0.3;
+  const billow = Math.sin(t * 80 + clusterSeed * 2.7) * 0.4;
+
   target.set(
     cx + Math.cos(phi) * sinTheta * cloudR * breathe * wisp + sway,
-    cy + Math.cos(theta) * cloudR * 0.25 * breathe,
+    cy + Math.cos(theta) * cloudR * 0.65 * breathe + (yNoise1 + yNoise2 + billow) * cloudR * 0.5,
     cz + Math.sin(phi) * sinTheta * cloudR * breathe * wisp
   );
 
@@ -140,7 +144,7 @@ const galaxy: Preset = {
   name: "Spiral Galaxy",
   code: `
 const arms = addControl("arms", "Spiral Arms", 2, 8, 8);
-const tightness = addControl("tight", "Tightness", 0.2, 2.0, 1.9);
+const tightness = addControl("tight", "Tightness", 0.2, 2.0, 0.90);
 const rotSpeed = addControl("rot", "Rotation Speed", 0.05, 1.0, 0.2);
 const diskH = addControl("disk", "Disk Height", 0.5, 8, 6);
 

@@ -68,6 +68,22 @@ export default function SystemPanel({ settings, onSettingsChange, fps }: Props) 
           </div>
 
           <div className="control-row">
+            <label className="control-label">Particle Distance</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={settings.particleSeparation}
+                onChange={(e) => update({ particleSeparation: parseFloat(e.target.value) })}
+                className="control-slider"
+              />
+              <span className="control-value">{settings.particleSeparation.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="control-row">
             <label className="control-label">Background</label>
             <input
               type="color"
