@@ -9,6 +9,16 @@
   text-transform: uppercase;
 }
 
+.dot-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #333333 1px, transparent 1px);
+  background-size: 20px 20px;
+  mix-blend-mode: screen;
+}
+
 /* ================== Loading =================== */
 .loading-screen {
   position: fixed;

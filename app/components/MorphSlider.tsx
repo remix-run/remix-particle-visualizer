@@ -25,15 +25,17 @@ export default function MorphSlider({
   const trackRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
 
+  const maxValue = presets.length - 1;
+
   const valueFromEvent = useCallback(
     (e: MouseEvent | React.MouseEvent) => {
       const track = trackRef.current;
       if (!track) return value;
       const rect = track.getBoundingClientRect();
       const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      return x * 3;
+      return x * maxValue;
     },
-    [value],
+    [value, maxValue],
   );
 
   const handlePointerDown = useCallback(
@@ -62,7 +64,7 @@ export default function MorphSlider({
     };
   }, [onValueChange, valueFromEvent]);
 
-  const pct = (value / 3) * 100;
+  const pct = (value / maxValue) * 100;
 
   return (
     <div className="morph-slider-container">
@@ -91,11 +93,11 @@ export default function MorphSlider({
       >
         <div className="morph-track-fill" style={{ width: `${pct}%` }} />
         <div className="morph-thumb" style={{ left: `${pct}%` }} />
-        {[0, 1, 2, 3].map((stop) => (
+        {presets.map((_, stop) => (
           <div
             key={stop}
             className={`morph-stop ${Math.abs(value - stop) < 0.05 ? "morph-stop-active" : ""}`}
-            style={{ left: `${(stop / 3) * 100}%` }}
+            style={{ left: `${(stop / maxValue) * 100}%` }}
           />
         ))}
       </div>

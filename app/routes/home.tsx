@@ -5,6 +5,8 @@ import { compile } from "~/lib/executor";
 import { validate } from "~/lib/validator";
 import { ControlManager } from "~/lib/controls";
 import { createMorphState, tickAutoPlay, getActiveFunctions, getNearestStop } from "~/lib/morph";
+import { loadModelPoints } from "~/lib/model-loader";
+import type { ModelData } from "~/lib/model-loader";
 import type { ParticleFn, SystemSettings, ControlDef, InfoState } from "~/lib/types";
 import { DEFAULT_SETTINGS } from "~/lib/types";
 import MorphSlider from "~/components/MorphSlider";
@@ -32,24 +34,48 @@ export default function Home() {
   const [hudInfo, setHudInfo] = useState<InfoState>({ title: "", description: "" });
   const [morphValue, setMorphValue] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [modelsLoading, setModelsLoading] = useState(() =>
+    presets.some((p) => p.modelUrl),
+  );
 
   const controlMgrRef = useRef(new ControlManager());
   const morphStateRef = useRef(createMorphState());
   const compiledPresetsRef = useRef<ParticleFn[]>([]);
   const presetCodesRef = useRef<string[]>(presets.map((p) => p.code));
+  const modelDataRef = useRef<(ModelData | undefined)[]>(presets.map(() => undefined));
   const lastTickRef = useRef(performance.now());
   const animRef = useRef<{ target: number; raf: number } | null>(null);
 
   useEffect(() => {
-    const compiled: ParticleFn[] = [];
-    for (const p of presets) {
+    let cancelled = false;
+
+    async function init() {
+      const modelLoads = presets.map((p) =>
+        p.modelUrl ? loadModelPoints(p.modelUrl) : Promise.resolve(undefined),
+      );
+
       try {
-        compiled.push(compile(p.code));
-      } catch {
-        compiled.push((() => {}) as unknown as ParticleFn);
+        const results = await Promise.all(modelLoads);
+        if (cancelled) return;
+        modelDataRef.current = results;
+      } catch (err) {
+        console.error("Failed to load model(s):", err);
       }
+
+      const compiled: ParticleFn[] = [];
+      for (let i = 0; i < presets.length; i++) {
+        try {
+          compiled.push(compile(presets[i].code, modelDataRef.current[i]));
+        } catch {
+          compiled.push((() => {}) as unknown as ParticleFn);
+        }
+      }
+      compiledPresetsRef.current = compiled;
+      setModelsLoading(false);
     }
-    compiledPresetsRef.current = compiled;
+
+    init();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -62,7 +88,7 @@ export default function Home() {
       const dt = (now - lastTickRef.current) / 1000;
       lastTickRef.current = now;
 
-      const newValue = tickAutoPlay(morphStateRef.current, dt);
+      const newValue = tickAutoPlay(morphStateRef.current, dt, presets.length - 1);
       setMorphValue(newValue);
       raf = requestAnimationFrame(tick);
     };
@@ -150,7 +176,7 @@ export default function Home() {
 
   const handleEdit = useCallback(() => {
     if (playing) setPlaying(false);
-    const stop = getNearestStop(morphValue);
+    const stop = getNearestStop(morphValue, presets.length - 1);
     setMorphValue(stop);
     morphStateRef.current.value = stop;
     setEditing(true);
@@ -163,14 +189,14 @@ export default function Home() {
   }, []);
 
   const handleCodeChange = useCallback((code: string) => {
-    const stop = getNearestStop(morphStateRef.current.value);
+    const stop = getNearestStop(morphStateRef.current.value, presets.length - 1);
     const result = validate(code);
     if (!result.valid) {
       setEditError(result.error || "Validation failed");
       return;
     }
     try {
-      const fn = compile(code);
+      const fn = compile(code, modelDataRef.current[stop]);
       compiledPresetsRef.current[stop] = fn;
       presetCodesRef.current[stop] = code;
       setEditError(null);
@@ -183,7 +209,17 @@ export default function Home() {
     controlMgrRef.current.setControlValue(id, value);
   }, []);
 
-  const editingStop = getNearestStop(morphValue);
+  const editingStop = getNearestStop(morphValue, presets.length - 1);
+
+  if (modelsLoading) {
+    return (
+      <div className="visualizer-root">
+        <div className="loading-screen">
+          <div className="loading-text">Loading models...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="visualizer-root">
@@ -195,6 +231,8 @@ export default function Home() {
           onFpsUpdate={setFps}
         />
       </Suspense>
+
+      <div className="dot-grid" />
 
       <HUD info={hudInfo} />
 

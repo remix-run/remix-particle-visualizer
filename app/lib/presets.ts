@@ -12,6 +12,10 @@ const ratio = i / count;
 const bellCount = Math.floor(count * 0.55);
 const isBell = i < bellCount;
 
+const spin = time * 0.15;
+const cosS = Math.cos(spin);
+const sinS = Math.sin(spin);
+
 if (isBell) {
   const t = i / bellCount;
   const theta = t * Math.PI * 2 * 40;
@@ -20,11 +24,9 @@ if (isBell) {
   const r = 20 * Math.sin(phi) * breathe;
   const bellY = 20 * Math.cos(phi) * breathe;
   const ripple = 1.0 + 0.05 * Math.sin(theta * 0.5 + time * 3.0);
-  target.set(
-    Math.cos(theta) * r * ripple,
-    bellY - 5,
-    Math.sin(theta) * r * ripple
-  );
+  const lx = Math.cos(theta) * r * ripple;
+  const lz = Math.sin(theta) * r * ripple;
+  target.set(lx * cosS - lz * sinS, bellY - 5, lx * sinS + lz * cosS);
   const h = 0.55 + 0.15 * Math.sin(t * 6.28 + time * 0.5);
   const l = 0.4 + 0.3 * glow * Math.pow(Math.sin(t * 3.14), 2) + 0.1 * Math.sin(time * 2.0 + i * 0.01);
   color.setHSL(h, 0.9, Math.min(l, 1.0));
@@ -41,11 +43,9 @@ if (isBell) {
   const depth = posInStrand * tentLen;
   const wave = Math.sin(posInStrand * 4.0 + time * 1.5 + strand * 0.8) * (2 + posInStrand * drift * 3);
   const wave2 = Math.cos(posInStrand * 3.0 + time * 1.2 + strand * 1.2) * (1 + posInStrand * drift * 2);
-  target.set(
-    baseX + wave,
-    -5 - depth,
-    baseZ + wave2
-  );
+  const lx = baseX + wave;
+  const lz = baseZ + wave2;
+  target.set(lx * cosS - lz * sinS, -5 - depth, lx * sinS + lz * cosS);
   const h = 0.6 + 0.1 * Math.sin(posInStrand * 3.0 + strand);
   const l = 0.3 + 0.4 * glow * (1.0 - posInStrand * 0.5) * (0.5 + 0.5 * Math.sin(time * 3.0 + posInStrand * 10.0));
   color.setHSL(h, 0.85, Math.max(0.1, Math.min(l, 1.0)));
@@ -62,7 +62,7 @@ if (i === 0) {
 const bonsai: Preset = {
   name: "Bonsai",
   code: `
-const scale = addControl("scale", "Scale", 8, 30, 16);
+const scale = addControl("scale", "Scale", 8, 50, 30);
 const wind = addControl("wind", "Wind", 0, 2.0, 0.4);
 const foliage = addControl("foliage", "Foliage Density", 0.3, 1.5, 1.0);
 const season = addControl("season", "Season", 0, 1, 0.2);
@@ -144,7 +144,7 @@ const galaxy: Preset = {
   name: "Spiral Galaxy",
   code: `
 const arms = addControl("arms", "Spiral Arms", 2, 8, 8);
-const tightness = addControl("tight", "Tightness", 0.2, 2.0, 0.90);
+const tightness = addControl("tight", "Tightness", 0.2, 2.0, 1.8);
 const rotSpeed = addControl("rot", "Rotation Speed", 0.05, 1.0, 0.2);
 const diskH = addControl("disk", "Disk Height", 0.5, 8, 6);
 
@@ -250,4 +250,32 @@ if (i === 0) {
 `.trim(),
 };
 
-export const presets: Preset[] = [jellyfish, bonsai, galaxy, tesseract];
+const remixLogo: Preset = {
+  name: "Remix Logo",
+  modelUrl: "/models/remix-logo.glb",
+  code: `
+const scale = addControl("scale", "Scale", 5, 80, 27);
+const spin = time * 0.15;
+const cosS = Math.cos(spin);
+const sinS = Math.sin(spin);
+
+const idx = i * 3;
+const mx = modelPositions[idx] * scale;
+const my = modelPositions[idx + 1] * scale;
+const mz = modelPositions[idx + 2] * scale;
+
+target.set(mx * cosS - mz * sinS, my, mx * sinS + mz * cosS);
+
+const t = i / count;
+const h = 0.0;
+const s = 0.0;
+const l = 0.5 + 0.3 * Math.sin(t * 6.28 + time * 0.5);
+color.setHSL(h, s, l);
+
+if (i === 0) {
+  setInfo("Remix Logo", "The Remix framework logo as particles");
+}
+`.trim(),
+};
+
+export const presets: Preset[] = [remixLogo, jellyfish, bonsai, galaxy, tesseract];
