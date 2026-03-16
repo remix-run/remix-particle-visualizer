@@ -1,4 +1,5 @@
 import type { ControlDef } from "~/lib/types";
+import { sliderFillStyle } from "~/lib/ui-utils";
 
 interface Props {
   controls: ControlDef[];
@@ -53,6 +54,7 @@ export default function ControlPanel({ controls, onControlChange }: Props) {
                 value={ctrl.value}
                 onChange={(e) => onControlChange(ctrl.id, parseFloat(e.target.value))}
                 className="control-slider"
+                style={sliderFillStyle(ctrl.value, ctrl.min, ctrl.max)}
               />
               <span className="control-value">{ctrl.value.toFixed(2)}</span>
             </div>

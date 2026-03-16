@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { SystemSettings } from "~/lib/types";
+import { sliderFillStyle } from "~/lib/ui-utils";
 
 interface Props {
   settings: SystemSettings;
@@ -70,6 +71,7 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
                 value={settings.particleCount}
                 onChange={(e) => update({ particleCount: parseInt(e.target.value) })}
                 className="control-slider"
+                style={sliderFillStyle(settings.particleCount, 1000, 100000)}
               />
               <span className="control-value">{(settings.particleCount / 1000).toFixed(0)}k</span>
             </div>
@@ -86,6 +88,7 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
                 value={settings.pointSize}
                 onChange={(e) => update({ pointSize: parseFloat(e.target.value) })}
                 className="control-slider"
+                style={sliderFillStyle(settings.pointSize, 0.1, 5)}
               />
               <span className="control-value">{settings.pointSize.toFixed(1)}</span>
             </div>
@@ -102,6 +105,7 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
                 value={settings.particleSeparation}
                 onChange={(e) => update({ particleSeparation: parseFloat(e.target.value) })}
                 className="control-slider"
+                style={sliderFillStyle(settings.particleSeparation, 0, 1)}
               />
               <span className="control-value">{settings.particleSeparation.toFixed(2)}</span>
             </div>
@@ -128,6 +132,7 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
                 value={settings.bloomStrength}
                 onChange={(e) => update({ bloomStrength: parseFloat(e.target.value) })}
                 className="control-slider"
+                style={sliderFillStyle(settings.bloomStrength, 0, 3)}
               />
               <span className="control-value">{settings.bloomStrength.toFixed(1)}</span>
             </div>
@@ -144,6 +149,7 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
                 value={settings.bloomThreshold}
                 onChange={(e) => update({ bloomThreshold: parseFloat(e.target.value) })}
                 className="control-slider"
+                style={sliderFillStyle(settings.bloomThreshold, 0, 1)}
               />
               <span className="control-value">{settings.bloomThreshold.toFixed(2)}</span>
             </div>
@@ -160,6 +166,7 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
                 value={settings.cameraFov}
                 onChange={(e) => update({ cameraFov: parseInt(e.target.value) })}
                 className="control-slider"
+                style={sliderFillStyle(settings.cameraFov, 30, 120)}
               />
               <span className="control-value">{settings.cameraFov}°</span>
             </div>

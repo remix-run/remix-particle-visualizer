@@ -253,14 +253,16 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: #2dacf9;
+  border: 2px solid rgba(45, 172, 249, 0.4);
+  box-shadow: 0 0 12px rgba(45, 172, 249, 0.7), 0 0 24px rgba(45, 172, 249, 0.35);
   cursor: pointer;
   transition: transform 0.15s;
 }
 
 .control-slider::-webkit-slider-thumb:hover {
   transform: scale(1.2);
+  box-shadow: 0 0 16px rgba(45, 172, 249, 0.9), 0 0 32px rgba(45, 172, 249, 0.5);
 }
 
 .control-value {
@@ -356,8 +358,9 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.2));
+  background: #2dacf9;
   border-radius: 3px;
+  box-shadow: 0 0 14px rgba(45, 172, 249, 0.6), 0 0 28px rgba(45, 172, 249, 0.3);
   pointer-events: none;
 }
 
@@ -367,9 +370,9 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #e0e0e0;
-  border: 2px solid #ffffff;
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+  background: #2dacf9;
+  border: 2px solid rgba(45, 172, 249, 0.5);
+  box-shadow: 0 0 16px rgba(45, 172, 249, 0.8), 0 0 32px rgba(45, 172, 249, 0.4);
   transform: translate(-50%, -50%);
   pointer-events: none;
   transition: box-shadow 0.2s;
@@ -388,8 +391,8 @@
 }
 
 .morph-stop-active {
-  background: #ffffff;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+  background: #2dacf9;
+  box-shadow: 0 0 12px rgba(45, 172, 249, 0.8), 0 0 24px rgba(45, 172, 249, 0.4);
 }
 
 .morph-buttons {
