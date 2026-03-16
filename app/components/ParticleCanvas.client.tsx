@@ -102,6 +102,15 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
     }
 
     let camAnimating = false;
+    let mouseNormX = 0;
+    let smoothMouseOffsetX = 0;
+    const MOUSE_RANGE = 9;
+    const MOUSE_LERP = 0.04;
+
+    const onMouseMove = (e: MouseEvent) => {
+      mouseNormX = (e.clientX / window.innerWidth) * 2 - 1;
+    };
+    window.addEventListener("mousemove", onMouseMove);
 
     const animate = () => {
       const now = performance.now();
@@ -109,9 +118,13 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
 
       engine.updateSettings(settingsRef.current);
       particles.setPointSize(settingsRef.current.pointSize);
-      particles.setSeparation(settingsRef.current.particleSeparation);
+      particles.setDof(settingsRef.current.dofAmount, settingsRef.current.dofFocus);
+      const sepCtrl = controlMgr.controls.get("_separation");
+      particles.setSeparation(sepCtrl ? sepCtrl.value : 0);
 
       particles.setIntroProgress(Math.min(time / 3.5, 1.5));
+
+      engine.camera.position.x -= smoothMouseOffsetX;
 
       const currentMorph = morphValueRef.current;
       if (Math.abs(currentMorph - prevMorphRef.current) > 0.001) {
@@ -162,6 +175,9 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
         }
       }
 
+      smoothMouseOffsetX += (mouseNormX * MOUSE_RANGE - smoothMouseOffsetX) * MOUSE_LERP;
+      engine.camera.position.x += smoothMouseOffsetX;
+
       engine.render();
 
       if (onFpsUpdate) {
@@ -180,6 +196,7 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
 
     return () => {
       cancelAnimationFrame(frameRef.current);
+      window.removeEventListener("mousemove", onMouseMove);
       particles.dispose(engine.scene);
       engine.dispose();
     };

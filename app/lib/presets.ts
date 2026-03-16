@@ -3,6 +3,7 @@ import type { Preset } from "./types";
 const jellyfish: Preset = {
   name: "Jellyfish",
   code: `
+addControl("_separation", "Particle Distance", 0, 1, 1);
 const pulse = addControl("pulse", "Pulse Speed", 0.2, 4.0, 1.2);
 const tentLen = addControl("tentLen", "Tentacle Length", 10, 60, 30);
 const glow = addControl("glow", "Glow Intensity", 0.3, 2.0, 1.0);
@@ -61,46 +62,47 @@ if (i === 0) {
 
 const racetrack: Preset = {
   name: "Racetrack",
-  cameraPosition: [-0.80, -17.40, 81.40],
-  cameraTarget: [0, -20, -30],
+  cameraPosition: [-0.80, -18.60, 81.40],
+  cameraTarget: [0, -4.20, -30],
   code: `
 const fogMode = addControl("_fogMode", "Fog: Color / Scene", 0, 1, 1);
+addControl("_separation", "Particle Distance", 0, 1, 0);
 
-const speed = addControl("speed", "Speed", 0.1, 2.0, 1.0);
+const speed = addControl("speed", "Speed", 0.1, 2.0, 0.2);
 const trackW = addControl("trackW", "Track Width", 5, 60, 40);
 const curveAmp = addControl("curve", "Curve Intensity", 0, 25, 10.25);
+const hillH = addControl("hillH", "Hill Height", 5, 40, 7.8);
 
 addControl("_camPosX", "Camera X", -80, 80, -0.80);
-addControl("_camPosY", "Camera Y", -60, 60, -17.40);
+addControl("_camPosY", "Camera Y", -60, 60, -18.60);
 addControl("_camPosZ", "Camera Z", 10, 150, 81.40);
 addControl("_camTgtX", "Look-at X", -80, 80, 0);
-addControl("_camTgtY", "Look-at Y", -60, 60, -20);
+addControl("_camTgtY", "Look-at Y", -60, 60, -4.20);
 addControl("_camTgtZ", "Look-at Z", -120, 60, -30);
 
 const zNear = 72;
 const zFar = -100;
 const trackY = -24;
-const curbFrac = 0.15;
-const surfaceEnd = Math.floor(count * (1 - curbFrac * 2));
-const leftEnd = surfaceEnd + Math.floor(count * curbFrac);
+
+const surfaceEnd = Math.floor(count * 0.30);
+const leftCurbEnd = surfaceEnd + Math.floor(count * 0.05);
+const rightCurbEnd = leftCurbEnd + Math.floor(count * 0.05);
+const leftHillEnd = rightCurbEnd + Math.floor(count * 0.30);
 
 const phi = 1.6180339887;
-const along = (((i * phi) % 1.0 - time * speed * 0.12) % 1.0 + 1.0) % 1.0;
-const across = (i * 0.7071067812) % 1.0;
-
-const t2 = along * along;
-const z = zNear + (zFar - zNear) * t2;
-
-const cx = Math.sin(along * Math.PI * 3) * curveAmp
-         + Math.sin(along * Math.PI * 5.5 + 2.0) * curveAmp * 0.3;
-
-const perspNarrow = 1.0 - along * 0.5;
+const hillWidth = 50;
 
 if (i < surfaceEnd) {
+  const along = (((i * phi) % 1.0 - time * speed * 0.12) % 1.0 + 1.0) % 1.0;
+  const across = (i * 0.7071067812) % 1.0;
+  const t2 = along * along;
+  const z = zNear + (zFar - zNear) * t2;
+  const cx = Math.sin(along * Math.PI * 3) * curveAmp
+           + Math.sin(along * Math.PI * 5.5 + 2.0) * curveAmp * 0.3;
+  const perspNarrow = 1.0 - along * 0.5;
   const lane = (across - 0.5) * trackW * perspNarrow;
   const jx = Math.sin(i * 7.37) * 0.2;
-  const jy = Math.cos(i * 3.91) * 0.1;
-  target.set(cx + lane + jx, trackY + jy, z);
+  target.set(cx + lane + jx, trackY, z);
 
   const tarmac = 0.06 + 0.03 * Math.sin(i * 3.77 + along * 20);
   color.setHSL(0, 0, tarmac);
@@ -109,7 +111,7 @@ if (i < surfaceEnd) {
     color.r *= fog; color.g *= fog; color.b *= fog;
   }
 
-} else if (i < leftEnd) {
+} else if (i < leftCurbEnd) {
   const bi = i - surfaceEnd;
   const bt = (((bi * phi) % 1.0 - time * speed * 0.12) % 1.0 + 1.0) % 1.0;
   const bt2 = bt * bt;
@@ -128,8 +130,8 @@ if (i < surfaceEnd) {
     color.r *= fog; color.g *= fog; color.b *= fog;
   }
 
-} else {
-  const bi = i - leftEnd;
+} else if (i < rightCurbEnd) {
+  const bi = i - leftCurbEnd;
   const bt = (((bi * phi) % 1.0 - time * speed * 0.12) % 1.0 + 1.0) % 1.0;
   const bt2 = bt * bt;
   const bz = zNear + (zFar - zNear) * bt2;
@@ -146,10 +148,76 @@ if (i < surfaceEnd) {
     const fog = 1.0 - bt;
     color.r *= fog; color.g *= fog; color.b *= fog;
   }
+
+} else if (i < leftHillEnd) {
+  const hi = i - rightCurbEnd;
+  const ht = (((hi * phi) % 1.0 - time * speed * 0.12) % 1.0 + 1.0) % 1.0;
+  const ht2 = ht * ht;
+  const hz = zNear + (zFar - zNear) * ht2;
+  const hcx = Math.sin(ht * Math.PI * 3) * curveAmp
+            + Math.sin(ht * Math.PI * 5.5 + 2.0) * curveAmp * 0.3;
+  const hNarrow = 1.0 - ht * 0.5;
+
+  const lat = (hi * 0.7071067812) % 1.0;
+  const xOff = (trackW * 0.5 + 1.5 + lat * hillWidth) * hNarrow;
+
+  const nx = lat * 3.5;
+  const nz = ht * 8.0;
+  const ridge = Math.sin(nz * 1.1 + nx * 0.7) * 0.5 + 0.5;
+  const broad = Math.sin(nz * 0.4 + nx * 1.3 + 2.0) * 0.5 + 0.5;
+  const fine = Math.sin(nz * 3.7 + nx * 2.1 + 5.0) * 0.3;
+  const slope = lat * 0.4 + 0.1;
+  const nearCurb = 1.0 - Math.exp(-lat * 6.0);
+  const elev = (ridge * 0.5 + broad * 0.35 + fine * 0.15 + slope) * hillH * nearCurb;
+
+  target.set(hcx - xOff, trackY + elev, hz);
+
+  const elevNorm = Math.min(elev / hillH, 1.0);
+  const hue = 0.30 - elevNorm * 0.06;
+  const sat = 0.75 - elevNorm * 0.35;
+  const lit = 0.08 + elevNorm * 0.14 + 0.03 * Math.sin(hi * 1.73);
+  color.setHSL(hue, sat, lit);
+  if (fogMode < 0.5) {
+    const fog = 1.0 - ht;
+    color.r *= fog; color.g *= fog; color.b *= fog;
+  }
+
+} else {
+  const hi = i - leftHillEnd;
+  const ht = (((hi * phi) % 1.0 - time * speed * 0.12) % 1.0 + 1.0) % 1.0;
+  const ht2 = ht * ht;
+  const hz = zNear + (zFar - zNear) * ht2;
+  const hcx = Math.sin(ht * Math.PI * 3) * curveAmp
+            + Math.sin(ht * Math.PI * 5.5 + 2.0) * curveAmp * 0.3;
+  const hNarrow = 1.0 - ht * 0.5;
+
+  const lat = (hi * 0.7071067812) % 1.0;
+  const xOff = (trackW * 0.5 + 1.5 + lat * hillWidth) * hNarrow;
+
+  const nx = lat * 3.5;
+  const nz = ht * 8.0;
+  const ridge = Math.sin(nz * 1.1 + nx * 0.7 + 1.5) * 0.5 + 0.5;
+  const broad = Math.sin(nz * 0.4 + nx * 1.3 + 4.0) * 0.5 + 0.5;
+  const fine = Math.sin(nz * 3.7 + nx * 2.1 + 8.0) * 0.3;
+  const slope = lat * 0.4 + 0.1;
+  const nearCurb = 1.0 - Math.exp(-lat * 6.0);
+  const elev = (ridge * 0.5 + broad * 0.35 + fine * 0.15 + slope) * hillH * nearCurb;
+
+  target.set(hcx + xOff, trackY + elev, hz);
+
+  const elevNorm = Math.min(elev / hillH, 1.0);
+  const hue = 0.30 - elevNorm * 0.06;
+  const sat = 0.75 - elevNorm * 0.35;
+  const lit = 0.08 + elevNorm * 0.14 + 0.03 * Math.sin(hi * 1.73);
+  color.setHSL(hue, sat, lit);
+  if (fogMode < 0.5) {
+    const fog = 1.0 - ht;
+    color.r *= fog; color.g *= fog; color.b *= fog;
+  }
 }
 
 if (i === 0) {
-  setInfo("Racetrack", "A circuit streaming past at speed");
+  setInfo("Racetrack", "A mountain circuit streaming past at speed");
 }
 `.trim(),
 };
@@ -157,6 +225,7 @@ if (i === 0) {
 const galaxy: Preset = {
   name: "Spiral Galaxy",
   code: `
+addControl("_separation", "Particle Distance", 0, 1, 1);
 const arms = addControl("arms", "Spiral Arms", 2, 8, 8);
 const tightness = addControl("tight", "Tightness", 0.2, 2.0, 1.8);
 const rotSpeed = addControl("rot", "Rotation Speed", 0.05, 1.0, 0.2);
@@ -199,6 +268,7 @@ if (i === 0) {
 const tesseract: Preset = {
   name: "4D Tesseract",
   code: `
+addControl("_separation", "Particle Distance", 0, 1, 0.2);
 const speedXW = addControl("sxw", "Rotation XW", 0.1, 2.0, 0.5);
 const speedYZ = addControl("syz", "Rotation YZ", 0.1, 2.0, 0.3);
 const projDist = addControl("proj", "Projection Dist", 1.5, 5.0, 2.5);
@@ -268,6 +338,7 @@ const remixLogo: Preset = {
   name: "Remix Logo",
   modelUrl: "/models/remix-logo.glb",
   code: `
+addControl("_separation", "Particle Distance", 0, 1, 0);
 const scale = addControl("scale", "Scale", 5, 80, 27);
 const spin = time * 0.15;
 const cosS = Math.cos(spin);
