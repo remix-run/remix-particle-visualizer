@@ -248,7 +248,7 @@ export default function Home() {
 
   return (
     <div className="visualizer-root">
-      <Suspense fallback={<div className="loading-screen"><div className="loading-text">Initializing particles...</div></div>}>
+      <Suspense fallback={<div className="loading-screen"><div className="loading-text">Initializing Particles...</div></div>}>
         <ParticleCanvas
           settings={settings}
           controlMgr={controlMgrRef.current}

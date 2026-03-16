@@ -57,7 +57,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export function HydrateFallback() {
   return (
     <div className="loading-screen">
-      <div className="loading-text">Initializing particles...</div>
+      <div className="loading-text">Initializing Particles...</div>
     </div>
   );
 }
