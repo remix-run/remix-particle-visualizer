@@ -40,6 +40,7 @@ export function meta({}: Route.MetaArgs) {
 export default function Home() {
   const [settings, setSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
   const [fps, setFps] = useState(0);
+  const [uiVisible, setUiVisible] = useState(true);
   const [editing, setEditing] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [vizControls, setVizControls] = useState<ControlDef[]>([]);
@@ -260,31 +261,37 @@ export default function Home() {
 
       <div className="dot-grid" />
 
-      <HUD info={hudInfo} />
+      {uiVisible && <HUD info={hudInfo} />}
 
       <SystemPanel
         settings={settings}
         onSettingsChange={setSettings}
         fps={fps}
+        uiVisible={uiVisible}
+        onToggleUi={() => setUiVisible((v) => !v)}
       />
 
-      <ControlPanel
-        controls={vizControls}
-        onControlChange={handleControlChange}
-      />
+      {uiVisible && (
+        <ControlPanel
+          controls={vizControls}
+          onControlChange={handleControlChange}
+        />
+      )}
 
-      <MorphSlider
-        presets={presets}
-        value={morphValue}
-        playing={playing}
-        onValueChange={handleMorphChange}
-        onPresetClick={handlePresetClick}
-        onTogglePlay={handleTogglePlay}
-        onEdit={handleEdit}
-        disabled={editing}
-      />
+      {uiVisible && (
+        <MorphSlider
+          presets={presets}
+          value={morphValue}
+          playing={playing}
+          onValueChange={handleMorphChange}
+          onPresetClick={handlePresetClick}
+          onTogglePlay={handleTogglePlay}
+          onEdit={handleEdit}
+          disabled={editing}
+        />
+      )}
 
-      {editing && (
+      {uiVisible && editing && (
         <Suspense fallback={<div className="editor-loading">Loading editor...</div>}>
           <CodeEditor
             code={presetCodesRef.current[editingStop]}
