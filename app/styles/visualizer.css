@@ -166,6 +166,39 @@
   overflow-y: auto;
 }
 
+/* ============= Segmented toggle ============= */
+.segmented-toggle {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.segmented-btn {
+  flex: 1;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-family: inherit;
+  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  color: #666666;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.segmented-btn:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.segmented-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.segmented-active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
 /* ============= Shared control styles ============= */
 .panel-header {
   font-size: 0.7rem;

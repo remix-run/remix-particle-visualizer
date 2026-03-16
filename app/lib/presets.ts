@@ -64,6 +64,8 @@ const racetrack: Preset = {
   cameraPosition: [-0.80, -17.40, 81.40],
   cameraTarget: [0, -20, -30],
   code: `
+const fogMode = addControl("_fogMode", "Fog: Color / Scene", 0, 1, 1);
+
 const speed = addControl("speed", "Speed", 0.1, 2.0, 1.0);
 const trackW = addControl("trackW", "Track Width", 5, 60, 40);
 const curveAmp = addControl("curve", "Curve Intensity", 0, 25, 10.25);
@@ -102,6 +104,10 @@ if (i < surfaceEnd) {
 
   const tarmac = 0.06 + 0.03 * Math.sin(i * 3.77 + along * 20);
   color.setHSL(0, 0, tarmac);
+  if (fogMode < 0.5) {
+    const fog = 1.0 - along;
+    color.r *= fog; color.g *= fog; color.b *= fog;
+  }
 
 } else if (i < leftEnd) {
   const bi = i - surfaceEnd;
@@ -117,6 +123,10 @@ if (i < surfaceEnd) {
   const isRed = Math.floor(bt * 35) % 2 === 0;
   if (isRed) color.setHSL(0, 0.85, 0.45);
   else color.setHSL(0, 0, 0.85);
+  if (fogMode < 0.5) {
+    const fog = 1.0 - bt;
+    color.r *= fog; color.g *= fog; color.b *= fog;
+  }
 
 } else {
   const bi = i - leftEnd;
@@ -132,6 +142,10 @@ if (i < surfaceEnd) {
   const isRed = Math.floor(bt * 35) % 2 === 0;
   if (isRed) color.setHSL(0, 0.85, 0.45);
   else color.setHSL(0, 0, 0.85);
+  if (fogMode < 0.5) {
+    const fog = 1.0 - bt;
+    color.r *= fog; color.g *= fog; color.b *= fog;
+  }
 }
 
 if (i === 0) {

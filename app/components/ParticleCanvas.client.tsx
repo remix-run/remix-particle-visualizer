@@ -134,6 +134,9 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       const { fnA, fnB, blend } = getActiveFnRef.current();
       particles.update(fnA, fnB, blend, time, controlMgr, THREE);
 
+      const fogCtrl = controlMgr.controls.get("_fogMode");
+      particles.setFog(fogCtrl !== undefined && fogCtrl.value > 0.5, 10, 180);
+
       const onPreset = Math.abs(currentMorph - Math.round(currentMorph)) < 0.01;
       if (onPreset) {
         const camCtrl = controlMgr.controls.get("_camPosX");

@@ -6,6 +6,7 @@ const VERTEX_SHADER = /* glsl */ `
   attribute float aSize;
   varying vec3 vColor;
   varying float vAlpha;
+  varying float vViewDist;
   uniform float uPointSize;
   uniform float uPixelRatio;
 
@@ -13,6 +14,7 @@ const VERTEX_SHADER = /* glsl */ `
     vColor = color;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     float dist = -mvPosition.z;
+    vViewDist = dist;
     gl_PointSize = aSize * uPointSize * uPixelRatio * (300.0 / dist);
     gl_PointSize = clamp(gl_PointSize, 1.0, 64.0);
     gl_Position = projectionMatrix * mvPosition;
@@ -23,6 +25,10 @@ const VERTEX_SHADER = /* glsl */ `
 const FRAGMENT_SHADER = /* glsl */ `
   varying vec3 vColor;
   varying float vAlpha;
+  varying float vViewDist;
+  uniform float uFogEnabled;
+  uniform float uFogNear;
+  uniform float uFogFar;
 
   void main() {
     float d = length(gl_PointCoord - vec2(0.5));
@@ -30,7 +36,15 @@ const FRAGMENT_SHADER = /* glsl */ `
     float glow = exp(-d * 6.0);
     float core = smoothstep(0.5, 0.0, d);
     float alpha = (glow * 0.6 + core * 0.4) * vAlpha;
-    gl_FragColor = vec4(vColor * (0.8 + core * 0.4), alpha);
+    vec3 col = vColor * (0.8 + core * 0.4);
+
+    if (uFogEnabled > 0.5) {
+      float fogFactor = smoothstep(uFogNear, uFogFar, vViewDist);
+      col *= 1.0 - fogFactor;
+      alpha *= 1.0 - fogFactor;
+    }
+
+    gl_FragColor = vec4(col, alpha);
   }
 `;
 
@@ -74,6 +88,9 @@ export class ParticleSystem {
       uniforms: {
         uPointSize: { value: pointSize },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+        uFogEnabled: { value: 0.0 },
+        uFogNear: { value: 10.0 },
+        uFogFar: { value: 180.0 },
       },
       vertexColors: true,
       transparent: true,
@@ -95,6 +112,14 @@ export class ParticleSystem {
 
   setSeparation(value: number) {
     this.separation = value;
+  }
+
+  setFog(enabled: boolean, near: number, far: number) {
+    if (this.material) {
+      this.material.uniforms.uFogEnabled.value = enabled ? 1.0 : 0.0;
+      this.material.uniforms.uFogNear.value = near;
+      this.material.uniforms.uFogFar.value = far;
+    }
   }
 
   update(
