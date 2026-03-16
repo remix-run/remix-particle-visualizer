@@ -17,6 +17,18 @@ import HUD from "~/components/HUD";
 const ParticleCanvas = lazy(() => import("~/components/ParticleCanvas.client"));
 const CodeEditor = lazy(() => import("~/components/CodeEditor.client"));
 
+function presetSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function initialPresetIndex(): number {
+  if (typeof window === "undefined") return 0;
+  const hash = window.location.hash.replace("#", "");
+  if (!hash) return 0;
+  const idx = presets.findIndex((p) => presetSlug(p.name) === hash);
+  return idx >= 0 ? idx : 0;
+}
+
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Particle Visualizer" },
@@ -32,7 +44,7 @@ export default function Home() {
   const [editError, setEditError] = useState<string | null>(null);
   const [vizControls, setVizControls] = useState<ControlDef[]>([]);
   const [hudInfo, setHudInfo] = useState<InfoState>({ title: "", description: "" });
-  const [morphValue, setMorphValue] = useState(0);
+  const [morphValue, setMorphValue] = useState(initialPresetIndex);
   const [playing, setPlaying] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(() =>
     presets.some((p) => p.modelUrl),
@@ -47,6 +59,8 @@ export default function Home() {
   const animRef = useRef<{ target: number; raf: number } | null>(null);
 
   useEffect(() => {
+    morphStateRef.current.value = morphValue;
+
     let cancelled = false;
 
     async function init() {
@@ -100,6 +114,16 @@ export default function Home() {
       morphStateRef.current.playing = false;
     };
   }, [playing]);
+
+  useEffect(() => {
+    const nearest = Math.round(morphValue);
+    if (Math.abs(morphValue - nearest) < 0.01 && nearest >= 0 && nearest < presets.length) {
+      const slug = presetSlug(presets[nearest].name);
+      if (window.location.hash !== `#${slug}`) {
+        history.replaceState(null, "", `#${slug}`);
+      }
+    }
+  }, [morphValue]);
 
   useEffect(() => {
     const interval = setInterval(() => {
