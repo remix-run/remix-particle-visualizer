@@ -10,9 +10,12 @@ const VERTEX_SHADER = /* glsl */ `
   varying float vViewDist;
   varying float vIntro;
   varying float vPulse;
+  varying float vCoc;
   uniform float uPointSize;
   uniform float uPixelRatio;
   uniform float uIntroProgress;
+  uniform float uDofAmount;
+  uniform float uDofFocus;
 
   void main() {
     vColor = color;
@@ -31,8 +34,15 @@ const VERTEX_SHADER = /* glsl */ `
     vec4 mvPosition = modelViewMatrix * vec4(position + vec3(0.0, introOffset, 0.0), 1.0);
     float dist = -mvPosition.z;
     vViewDist = dist;
-    gl_PointSize = aSize * uPointSize * uPixelRatio * (300.0 / dist);
-    gl_PointSize = clamp(gl_PointSize, 1.0, 64.0);
+
+    float baseSize = aSize * uPointSize * uPixelRatio * (300.0 / dist);
+
+    float coc = uDofAmount > 0.0
+      ? abs(dist - uDofFocus) * uDofAmount * 0.01
+      : 0.0;
+    vCoc = clamp(coc, 0.0, 1.0);
+
+    gl_PointSize = clamp(baseSize + coc * 12.0, 1.0, 128.0);
     gl_Position = projectionMatrix * mvPosition;
     vAlpha = smoothstep(500.0, 50.0, dist);
   }
@@ -44,6 +54,7 @@ const FRAGMENT_SHADER = /* glsl */ `
   varying float vViewDist;
   varying float vIntro;
   varying float vPulse;
+  varying float vCoc;
   uniform float uFogEnabled;
   uniform float uFogNear;
   uniform float uFogFar;
@@ -51,9 +62,13 @@ const FRAGMENT_SHADER = /* glsl */ `
   void main() {
     float d = length(gl_PointCoord - vec2(0.5));
     if (d > 0.5) discard;
-    float glow = exp(-d * 6.0);
-    float core = smoothstep(0.5, 0.0, d);
+
+    float sharpness = mix(6.0, 2.0, vCoc);
+    float glow = exp(-d * sharpness);
+    float core = smoothstep(0.5, 0.1 + vCoc * 0.3, d);
     float alpha = (glow * 0.6 + core * 0.4) * vAlpha * vIntro;
+    alpha *= mix(1.0, 0.35, vCoc);
+
     vec3 col = vColor * (0.8 + core * 0.4) * (1.0 + vPulse * 3.0);
 
     if (uFogEnabled > 0.0) {
@@ -113,6 +128,8 @@ export class ParticleSystem {
         uFogEnabled: { value: 0.0 },
         uFogNear: { value: 10.0 },
         uFogFar: { value: 180.0 },
+        uDofAmount: { value: 0.0 },
+        uDofFocus: { value: 80.0 },
       },
       vertexColors: true,
       transparent: true,
@@ -150,6 +167,13 @@ export class ParticleSystem {
     }
   }
 
+  setDof(amount: number, focus: number) {
+    if (this.material) {
+      this.material.uniforms.uDofAmount.value = amount;
+      this.material.uniforms.uDofFocus.value = focus;
+    }
+  }
+
   update(
     fnA: ParticleFn,
     fnB: ParticleFn | null,
@@ -164,8 +188,6 @@ export class ParticleSystem {
     const colors = this.colorAttr.array as Float32Array;
     const count = this.count;
 
-    const addControl = (id: string, label: string, min: number, max: number, initial: number) =>
-      controlMgr.addControl(id, label, min, max, initial);
     const setInfo = (title: string, description: string) =>
       controlMgr.setInfo(title, description);
     const annotate = (id: string, pos: THREE.Vector3, label: string) =>
@@ -173,27 +195,41 @@ export class ParticleSystem {
 
     controlMgr.beginFrame();
 
-    const sep = this.separation;
+    let sepA = this.separation;
+    let sepB = this.separation;
 
     if (!fnB || blend < 0.001) {
+      const addControlA = (id: string, label: string, min: number, max: number, initial: number) => {
+        const v = controlMgr.addControl(id, label, min, max, initial);
+        if (id === "_separation") sepA = v;
+        return v;
+      };
+
       for (let i = 0; i < count; i++) {
         this.targetA.set(0, 0, 0);
         this.colorA.setRGB(1, 1, 1);
-        fnA(i, count, this.targetA, this.colorA, time, THREELib, addControl, setInfo, annotate);
+        fnA(i, count, this.targetA, this.colorA, time, THREELib, addControlA, setInfo, annotate);
         const idx = i * 3;
         const h = i * 2.3999;
-        positions[idx] = this.targetA.x + Math.sin(h) * sep;
-        positions[idx + 1] = this.targetA.y + Math.cos(h * 1.731) * sep;
-        positions[idx + 2] = this.targetA.z + Math.sin(h * 2.419) * sep;
+        positions[idx] = this.targetA.x + Math.sin(h) * sepA;
+        positions[idx + 1] = this.targetA.y + Math.cos(h * 1.731) * sepA;
+        positions[idx + 2] = this.targetA.z + Math.sin(h * 2.419) * sepA;
         colors[idx] = this.colorA.r;
         colors[idx + 1] = this.colorA.g;
         colors[idx + 2] = this.colorA.b;
       }
     } else {
       const t = blend * blend * (3 - 2 * blend); // smoothstep
-      const addControlB = (id: string, _label: string, _min: number, _max: number, initial: number) => {
+      const addControlA = (id: string, label: string, min: number, max: number, initial: number) => {
+        const v = controlMgr.addControl(id, label, min, max, initial);
+        if (id === "_separation") sepA = initial;
+        return v;
+      };
+      const addControlBFn = (id: string, _label: string, _min: number, _max: number, initial: number) => {
         const existing = controlMgr.controls.get(id);
-        return existing ? existing.value : initial;
+        const v = existing ? existing.value : initial;
+        if (id === "_separation") sepB = initial;
+        return v;
       };
       const noopInfo = () => {};
       const noopAnnotate = () => {};
@@ -204,18 +240,24 @@ export class ParticleSystem {
         this.targetB.set(0, 0, 0);
         this.colorB.setRGB(1, 1, 1);
 
-        fnA(i, count, this.targetA, this.colorA, time, THREELib, addControl, setInfo, annotate);
-        fnB(i, count, this.targetB, this.colorB, time, THREELib, addControlB, noopInfo, noopAnnotate);
+        fnA(i, count, this.targetA, this.colorA, time, THREELib, addControlA, setInfo, annotate);
+        fnB(i, count, this.targetB, this.colorB, time, THREELib, addControlBFn, noopInfo, noopAnnotate);
 
         const idx = i * 3;
         const invT = 1 - t;
         const h = i * 2.3999;
+        const sep = sepA * invT + sepB * t;
         positions[idx] = this.targetA.x * invT + this.targetB.x * t + Math.sin(h) * sep;
         positions[idx + 1] = this.targetA.y * invT + this.targetB.y * t + Math.cos(h * 1.731) * sep;
         positions[idx + 2] = this.targetA.z * invT + this.targetB.z * t + Math.sin(h * 2.419) * sep;
         colors[idx] = this.colorA.r * invT + this.colorB.r * t;
         colors[idx + 1] = this.colorA.g * invT + this.colorB.g * t;
         colors[idx + 2] = this.colorA.b * invT + this.colorB.b * t;
+      }
+
+      const sepCtrl = controlMgr.controls.get("_separation");
+      if (sepCtrl) {
+        sepCtrl.value = sepA + (sepB - sepA) * t;
       }
     }
 
