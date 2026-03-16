@@ -227,6 +227,8 @@ export default function Home() {
         <ParticleCanvas
           settings={settings}
           controlMgr={controlMgrRef.current}
+          presets={presets}
+          morphValue={morphValue}
           getActiveFn={getActiveFn}
           onFpsUpdate={setFps}
         />

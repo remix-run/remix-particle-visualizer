@@ -59,83 +59,83 @@ if (i === 0) {
 `.trim(),
 };
 
-const bonsai: Preset = {
-  name: "Bonsai",
+const racetrack: Preset = {
+  name: "Racetrack",
+  cameraPosition: [-0.80, -17.40, 81.40],
+  cameraTarget: [0, -20, -30],
   code: `
-const scale = addControl("scale", "Scale", 8, 50, 30);
-const wind = addControl("wind", "Wind", 0, 2.0, 0.4);
-const foliage = addControl("foliage", "Foliage Density", 0.3, 1.5, 1.0);
-const season = addControl("season", "Season", 0, 1, 0.2);
+const speed = addControl("speed", "Speed", 0.1, 2.0, 1.0);
+const trackW = addControl("trackW", "Track Width", 5, 60, 40);
+const curveAmp = addControl("curve", "Curve Intensity", 0, 25, 10.25);
 
-const trunkCount = Math.floor(count * 0.15);
-const canopyCount = count - trunkCount;
+addControl("_camPosX", "Camera X", -80, 80, -0.80);
+addControl("_camPosY", "Camera Y", -60, 60, -17.40);
+addControl("_camPosZ", "Camera Z", 10, 150, 81.40);
+addControl("_camTgtX", "Look-at X", -80, 80, 0);
+addControl("_camTgtY", "Look-at Y", -60, 60, -20);
+addControl("_camTgtZ", "Look-at Z", -120, 60, -30);
 
-if (i < trunkCount) {
-  const t = i / trunkCount;
-  const h = t * scale * 0.65;
-  const taper = (1.0 - t * 0.7) * scale * 0.22;
+const zNear = 72;
+const zFar = -100;
+const trackY = -24;
+const curbFrac = 0.15;
+const surfaceEnd = Math.floor(count * (1 - curbFrac * 2));
+const leftEnd = surfaceEnd + Math.floor(count * curbFrac);
 
-  const curveX = Math.sin(t * Math.PI * 0.9) * scale * 0.4 + Math.sin(t * 5.2 + 0.8) * scale * 0.08;
-  const curveZ = Math.cos(t * Math.PI * 0.7 + 1.5) * scale * 0.2 + Math.cos(t * 4.1 + 1.3) * scale * 0.06;
+const phi = 1.6180339887;
+const along = (((i * phi) % 1.0 - time * speed * 0.12) % 1.0 + 1.0) % 1.0;
+const across = (i * 0.7071067812) % 1.0;
 
-  const sway = Math.sin(time * wind + t * 3) * t * wind * 0.5;
+const t2 = along * along;
+const z = zNear + (zFar - zNear) * t2;
 
-  const angle = (i % 30) / 30 * Math.PI * 2;
-  const knot = 1.0 + 0.35 * Math.sin(angle * 3 + t * 12) + 0.15 * Math.sin(t * 25);
-  const r = taper * knot;
+const cx = Math.sin(along * Math.PI * 3) * curveAmp
+         + Math.sin(along * Math.PI * 5.5 + 2.0) * curveAmp * 0.3;
 
-  target.set(
-    Math.cos(angle) * r + curveX + sway,
-    h - scale * 0.2,
-    Math.sin(angle) * r + curveZ
-  );
+const perspNarrow = 1.0 - along * 0.5;
 
-  const bark = 0.08 + 0.03 * Math.sin(t * 30);
-  const lum = 0.13 + 0.12 * t;
-  color.setHSL(bark, 0.65, lum);
+if (i < surfaceEnd) {
+  const lane = (across - 0.5) * trackW * perspNarrow;
+  const jx = Math.sin(i * 7.37) * 0.2;
+  const jy = Math.cos(i * 3.91) * 0.1;
+  target.set(cx + lane + jx, trackY + jy, z);
+
+  const tarmac = 0.06 + 0.03 * Math.sin(i * 3.77 + along * 20);
+  color.setHSL(0, 0, tarmac);
+
+} else if (i < leftEnd) {
+  const bi = i - surfaceEnd;
+  const bt = (((bi * phi) % 1.0 - time * speed * 0.12) % 1.0 + 1.0) % 1.0;
+  const bt2 = bt * bt;
+  const bz = zNear + (zFar - zNear) * bt2;
+  const bcx = Math.sin(bt * Math.PI * 3) * curveAmp
+            + Math.sin(bt * Math.PI * 5.5 + 2.0) * curveAmp * 0.3;
+  const bNarrow = 1.0 - bt * 0.5;
+  const stripOff = (bi % 8) / 8 * 1.5;
+  target.set(bcx - trackW * 0.5 * bNarrow - stripOff, trackY, bz);
+
+  const isRed = Math.floor(bt * 35) % 2 === 0;
+  if (isRed) color.setHSL(0, 0.85, 0.45);
+  else color.setHSL(0, 0, 0.85);
 
 } else {
-  const ci = i - trunkCount;
-  const t = ci / canopyCount;
+  const bi = i - leftEnd;
+  const bt = (((bi * phi) % 1.0 - time * speed * 0.12) % 1.0 + 1.0) % 1.0;
+  const bt2 = bt * bt;
+  const bz = zNear + (zFar - zNear) * bt2;
+  const bcx = Math.sin(bt * Math.PI * 3) * curveAmp
+            + Math.sin(bt * Math.PI * 5.5 + 2.0) * curveAmp * 0.3;
+  const bNarrow = 1.0 - bt * 0.5;
+  const stripOff = (bi % 8) / 8 * 1.5;
+  target.set(bcx + trackW * 0.5 * bNarrow + stripOff, trackY, bz);
 
-  const cluster = ci % 5;
-  const clusterSeed = Math.floor(ci / (canopyCount * 0.2));
-  const trunkTipX = Math.sin(Math.PI * 0.9) * scale * 0.4;
-  const trunkTipZ = Math.cos(Math.PI * 0.7 + 1.5) * scale * 0.2;
-  const cx = trunkTipX + Math.sin(clusterSeed * 2.4 + 1.0) * scale * 0.55;
-  const cz = trunkTipZ + Math.cos(clusterSeed * 3.7 + 2.0) * scale * 0.55;
-  const cy = scale * 0.4 + Math.abs(Math.sin(clusterSeed * 1.8)) * scale * 0.2;
-
-  const phi = t * Math.PI * 2 * 30 + clusterSeed * 7;
-  const cosP = Math.cos(phi);
-  const theta = t * Math.PI * 18 + clusterSeed * 4;
-
-  const cloudR = scale * 0.55 * foliage * (0.4 + 0.6 * Math.sin(t * 60 + clusterSeed));
-  const breathe = 1.0 + 0.04 * Math.sin(time * 1.5 + t * 10);
-  const sway = Math.sin(time * wind * 0.7 + t * 5) * wind * 1.2;
-
-  const sinTheta = Math.sin(theta);
-  const wisp = 1.0 + 0.5 * Math.sin(t * 200 + clusterSeed * 3);
-
-  const yNoise1 = Math.sin(ci * 1.37 + clusterSeed * 5.1) * 0.6;
-  const yNoise2 = Math.cos(ci * 0.73 + clusterSeed * 3.3) * 0.3;
-  const billow = Math.sin(t * 80 + clusterSeed * 2.7) * 0.4;
-
-  target.set(
-    cx + Math.cos(phi) * sinTheta * cloudR * breathe * wisp + sway,
-    cy + Math.cos(theta) * cloudR * 0.65 * breathe + (yNoise1 + yNoise2 + billow) * cloudR * 0.5,
-    cz + Math.sin(phi) * sinTheta * cloudR * breathe * wisp
-  );
-
-  const greenH = 0.28 + 0.07 * Math.sin(t * 40 + clusterSeed) - season * 0.15;
-  const sat = 0.6 + 0.3 * (1.0 - season);
-  const lum = 0.2 + 0.25 * (0.5 + 0.5 * cosP) + season * 0.15;
-  color.setHSL(greenH, sat, Math.min(lum, 0.7));
+  const isRed = Math.floor(bt * 35) % 2 === 0;
+  if (isRed) color.setHSL(0, 0.85, 0.45);
+  else color.setHSL(0, 0, 0.85);
 }
 
 if (i === 0) {
-  setInfo("Bonsai", "A miniature tree swaying in the wind");
-  annotate("base", new THREE.Vector3(0, -scale * 0.3, 0), "Root");
+  setInfo("Racetrack", "A circuit streaming past at speed");
 }
 `.trim(),
 };
@@ -278,4 +278,4 @@ if (i === 0) {
 `.trim(),
 };
 
-export const presets: Preset[] = [remixLogo, jellyfish, bonsai, galaxy, tesseract];
+export const presets: Preset[] = [remixLogo, jellyfish, racetrack, galaxy, tesseract];

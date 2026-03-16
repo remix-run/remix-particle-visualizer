@@ -24,6 +24,8 @@ export interface Preset {
   name: string;
   code: string;
   modelUrl?: string;
+  cameraPosition?: [number, number, number];
+  cameraTarget?: [number, number, number];
 }
 
 export interface SystemSettings {
@@ -39,7 +41,7 @@ export interface SystemSettings {
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   particleCount: 20000,
-  pointSize: 0.5,
+  pointSize: 0.3,
   particleSeparation: 0.40,
   backgroundColor: "#000000",
   bloomStrength: 2.0,
