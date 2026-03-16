@@ -137,7 +137,10 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       particles.update(fnA, fnB, blend, time, controlMgr, THREE);
 
       const fogCtrl = controlMgr.controls.get("_fogMode");
-      particles.setFog(fogCtrl !== undefined && fogCtrl.value > 0.5, 10, 180);
+      const racetrackIdx = presetsRef.current.findIndex((p) => p.name === "Racetrack");
+      const fogProximity = racetrackIdx >= 0 ? Math.max(0, 1 - Math.abs(currentMorph - racetrackIdx)) : 0;
+      const fogActive = fogCtrl !== undefined && fogCtrl.value > 0.5 ? 1 : 0;
+      particles.setFog(fogActive * fogProximity, 10, 180);
 
       const onPreset = Math.abs(currentMorph - Math.round(currentMorph)) < 0.01;
       if (onPreset) {

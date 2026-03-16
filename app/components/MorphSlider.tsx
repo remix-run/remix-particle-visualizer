@@ -4,22 +4,16 @@ import type { Preset } from "~/lib/types";
 interface Props {
   presets: Preset[];
   value: number;
-  playing: boolean;
   onValueChange: (v: number) => void;
   onPresetClick: (idx: number) => void;
-  onTogglePlay: () => void;
-  onEdit: () => void;
   disabled?: boolean;
 }
 
 export default function MorphSlider({
   presets,
   value,
-  playing,
   onValueChange,
   onPresetClick,
-  onTogglePlay,
-  onEdit,
   disabled,
 }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -32,8 +26,8 @@ export default function MorphSlider({
       const track = trackRef.current;
       if (!track) return value;
       const rect = track.getBoundingClientRect();
-      const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-      return x * maxValue;
+      const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+      return y * maxValue;
     },
     [value, maxValue],
   );
@@ -68,67 +62,43 @@ export default function MorphSlider({
 
   return (
     <div className="morph-slider-container">
-      <div className="morph-labels">
-        {presets.map((p, idx) => {
-          const dist = Math.abs(value - idx);
-          const active = dist < 0.3;
-          return (
-            <button
-              key={p.name}
-              className={`morph-label ${active ? "morph-label-active" : ""}`}
-              onClick={() => !disabled && onPresetClick(idx)}
-              style={{ opacity: disabled ? 0.4 : 1 }}
-            >
-              {p.name}
-            </button>
-          );
-        })}
-      </div>
-
-      <div
-        ref={trackRef}
-        className="morph-track"
-        onMouseDown={handlePointerDown}
-        style={{ opacity: disabled ? 0.4 : 1, pointerEvents: disabled ? "none" : "auto" }}
-      >
-        <div className="morph-track-fill" style={{ width: `${pct}%` }} />
-        <div className="morph-thumb" style={{ left: `${pct}%` }} />
-        {presets.map((_, stop) => (
-          <div
-            key={stop}
-            className={`morph-stop ${Math.abs(value - stop) < 0.05 ? "morph-stop-active" : ""}`}
-            style={{ left: `${(stop / maxValue) * 100}%` }}
-          />
-        ))}
-      </div>
-
-      <div className="morph-buttons">
-        <button
-          className="morph-btn"
-          onClick={onTogglePlay}
-          title={playing ? "Pause" : "Play auto-cycle"}
-          disabled={disabled}
+      <div className="morph-track-area">
+        <div
+          ref={trackRef}
+          className="morph-track"
+          onMouseDown={handlePointerDown}
+          style={{ opacity: disabled ? 0.4 : 1, pointerEvents: disabled ? "none" : "auto" }}
         >
-          {playing ? (
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <rect x="3" y="2" width="4" height="12" rx="1" />
-              <rect x="9" y="2" width="4" height="12" rx="1" />
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M4 2l10 6-10 6V2z" />
-            </svg>
-          )}
-        </button>
-        <button
-          className="morph-btn"
-          onClick={onEdit}
-          title="Edit preset code"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-          </svg>
-        </button>
+          <div className="morph-track-fill" style={{ height: `${pct}%` }} />
+          <div className="morph-thumb" style={{ top: `${pct}%` }} />
+          {presets.map((_, stop) => (
+            <div
+              key={stop}
+              className={`morph-stop ${Math.abs(value - stop) < 0.05 ? "morph-stop-active" : ""}`}
+              style={{ top: `${(stop / maxValue) * 100}%` }}
+            />
+          ))}
+        </div>
+
+        <div className="morph-labels">
+          {presets.map((p, idx) => {
+            const dist = Math.abs(value - idx);
+            const active = dist < 0.3;
+            return (
+              <button
+                key={p.name}
+                className={`morph-label ${active ? "morph-label-active" : ""}`}
+                onClick={() => !disabled && onPresetClick(idx)}
+                style={{
+                  opacity: disabled ? 0.4 : 1,
+                  top: `${(idx / maxValue) * 100}%`,
+                }}
+              >
+                {p.name}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

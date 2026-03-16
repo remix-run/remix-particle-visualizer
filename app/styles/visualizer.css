@@ -74,7 +74,7 @@
 }
 
 .hud-prefix {
-  color: #555555;
+  color: #999999;
 }
 
 .hud-cursor {
@@ -88,6 +88,12 @@
 }
 
 .hud-desc {
+  font-size: 0.85rem;
+  margin: 10px 0 0;
+  color: #555555;
+}
+
+.hud-hint {
   font-size: 0.85rem;
   margin: 10px 0 0;
   color: #555555;
@@ -303,41 +309,51 @@
 /* =============== Morph Slider =============== */
 .morph-slider-container {
   position: absolute;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 20;
-  width: min(90vw, 600px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.morph-track-area {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  height: min(60vh, 320px);
 }
 
 .morph-labels {
+  position: relative;
   display: flex;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0 4px;
+  flex-direction: column;
+  width: 120px;
 }
 
 .morph-label {
+  position: absolute;
+  left: 0;
+  transform: translateY(-50%);
   font-size: 0.72rem;
   font-weight: 500;
   color: #555555;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 4px 0;
   border-radius: 4px;
   transition: all 0.3s;
   text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .morph-label:hover {
   color: #999999;
 }
-
 
 .morph-label-active {
   color: #999999;
@@ -346,18 +362,19 @@
 
 .morph-track {
   position: relative;
-  width: 100%;
-  height: 6px;
+  width: 6px;
+  height: 100%;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 3px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .morph-track-fill {
   position: absolute;
   top: 0;
   left: 0;
-  height: 100%;
+  width: 100%;
   background: #2dacf9;
   border-radius: 3px;
   box-shadow: 0 0 14px rgba(45, 172, 249, 0.6), 0 0 28px rgba(45, 172, 249, 0.3);
@@ -366,7 +383,7 @@
 
 .morph-thumb {
   position: absolute;
-  top: 50%;
+  left: 50%;
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -380,7 +397,7 @@
 
 .morph-stop {
   position: absolute;
-  top: 50%;
+  left: 50%;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -395,36 +412,6 @@
   box-shadow: 0 0 12px rgba(45, 172, 249, 0.8), 0 0 24px rgba(45, 172, 249, 0.4);
 }
 
-.morph-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.morph-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(12px);
-  color: #555555;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.morph-btn:hover:not(:disabled) {
-  background: rgba(20, 20, 20, 0.8);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.morph-btn:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
 
 /* ================ Code Editor ================ */
 .editor-panel {

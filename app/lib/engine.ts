@@ -39,7 +39,7 @@ export class Engine {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
     this.controls.rotateSpeed = 0.5;
-    this.controls.zoomSpeed = 0.8;
+    this.controls.enableZoom = false;
     this.controls.minDistance = 5;
     this.controls.maxDistance = 500;
 

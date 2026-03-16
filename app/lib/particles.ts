@@ -56,8 +56,8 @@ const FRAGMENT_SHADER = /* glsl */ `
     float alpha = (glow * 0.6 + core * 0.4) * vAlpha * vIntro;
     vec3 col = vColor * (0.8 + core * 0.4) * (1.0 + vPulse * 3.0);
 
-    if (uFogEnabled > 0.5) {
-      float fogFactor = smoothstep(uFogNear, uFogFar, vViewDist);
+    if (uFogEnabled > 0.0) {
+      float fogFactor = smoothstep(uFogNear, uFogFar, vViewDist) * uFogEnabled;
       col *= 1.0 - fogFactor;
       alpha *= 1.0 - fogFactor;
     }
@@ -142,9 +142,9 @@ export class ParticleSystem {
     }
   }
 
-  setFog(enabled: boolean, near: number, far: number) {
+  setFog(intensity: number, near: number, far: number) {
     if (this.material) {
-      this.material.uniforms.uFogEnabled.value = enabled ? 1.0 : 0.0;
+      this.material.uniforms.uFogEnabled.value = intensity;
       this.material.uniforms.uFogNear.value = near;
       this.material.uniforms.uFogFar.value = far;
     }

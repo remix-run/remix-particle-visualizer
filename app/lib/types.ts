@@ -41,7 +41,7 @@ export interface SystemSettings {
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   particleCount: 20000,
-  pointSize: 0.3,
+  pointSize: 0.5,
   particleSeparation: 0.40,
   backgroundColor: "#000000",
   bloomStrength: 2.0,

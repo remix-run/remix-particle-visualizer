@@ -4,7 +4,7 @@ import { presets } from "~/lib/presets";
 import { compile } from "~/lib/executor";
 import { validate } from "~/lib/validator";
 import { ControlManager } from "~/lib/controls";
-import { createMorphState, tickAutoPlay, getActiveFunctions, getNearestStop } from "~/lib/morph";
+import { createMorphState, getActiveFunctions, getNearestStop } from "~/lib/morph";
 import { loadModelPoints } from "~/lib/model-loader";
 import type { ModelData } from "~/lib/model-loader";
 import type { ParticleFn, SystemSettings, ControlDef, InfoState } from "~/lib/types";
@@ -46,7 +46,6 @@ export default function Home() {
   const [vizControls, setVizControls] = useState<ControlDef[]>([]);
   const [hudInfo, setHudInfo] = useState<InfoState>({ title: "", description: "" });
   const [morphValue, setMorphValue] = useState(initialPresetIndex);
-  const [playing, setPlaying] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(() =>
     presets.some((p) => p.modelUrl),
   );
@@ -56,8 +55,9 @@ export default function Home() {
   const compiledPresetsRef = useRef<ParticleFn[]>([]);
   const presetCodesRef = useRef<string[]>(presets.map((p) => p.code));
   const modelDataRef = useRef<(ModelData | undefined)[]>(presets.map(() => undefined));
-  const lastTickRef = useRef(performance.now());
+
   const animRef = useRef<{ target: number; raf: number } | null>(null);
+  const handlePresetClickRef = useRef<(idx: number) => void>(() => {});
 
   useEffect(() => {
     morphStateRef.current.value = morphValue;
@@ -92,29 +92,6 @@ export default function Home() {
     init();
     return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => {
-    if (!playing) return;
-    morphStateRef.current.playing = true;
-
-    let raf: number;
-    const tick = () => {
-      const now = performance.now();
-      const dt = (now - lastTickRef.current) / 1000;
-      lastTickRef.current = now;
-
-      const newValue = tickAutoPlay(morphStateRef.current, dt, presets.length - 1);
-      setMorphValue(newValue);
-      raf = requestAnimationFrame(tick);
-    };
-    lastTickRef.current = performance.now();
-    raf = requestAnimationFrame(tick);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      morphStateRef.current.playing = false;
-    };
-  }, [playing]);
 
   useEffect(() => {
     const nearest = Math.round(morphValue);
@@ -158,13 +135,82 @@ export default function Home() {
     cancelAnim();
     setMorphValue(v);
     morphStateRef.current.value = v;
-    if (playing) {
-      setPlaying(false);
-    }
-  }, [playing, cancelAnim]);
+  }, [cancelAnim]);
+
+  useEffect(() => {
+    const maxVal = presets.length - 1;
+
+    const applyDelta = (delta: number) => {
+      setMorphValue((prev) => {
+        const next = Math.max(0, Math.min(maxVal, prev + delta));
+        morphStateRef.current.value = next;
+        return next;
+      });
+      cancelAnim();
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      applyDelta(e.deltaY > 0 ? 0.05 : -0.05);
+    };
+
+    let touchStartY = 0;
+    let lastTouchY = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+      lastTouchY = touchStartY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const currentY = e.touches[0].clientY;
+      const dy = lastTouchY - currentY;
+      lastTouchY = currentY;
+      const sensitivity = maxVal / (window.innerHeight * 0.6);
+      applyDelta(dy * sensitivity);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        setMorphValue((prev) => {
+          const target = Math.min(maxVal, Math.floor(prev) + 1);
+          if (target === Math.round(prev) && target < maxVal) {
+            handlePresetClickRef.current(target + 1);
+          } else {
+            handlePresetClickRef.current(target);
+          }
+          return prev;
+        });
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        setMorphValue((prev) => {
+          const target = Math.max(0, Math.ceil(prev) - 1);
+          if (target === Math.round(prev) && target > 0) {
+            handlePresetClickRef.current(target - 1);
+          } else {
+            handlePresetClickRef.current(target);
+          }
+          return prev;
+        });
+      }
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [cancelAnim]);
 
   const handlePresetClick = useCallback((idx: number) => {
-    if (playing) setPlaying(false);
     cancelAnim();
 
     const anim = { target: idx, raf: 0 };
@@ -192,21 +238,18 @@ export default function Home() {
     };
 
     anim.raf = requestAnimationFrame(tick);
-  }, [playing, cancelAnim]);
-
-  const handleTogglePlay = useCallback(() => {
-    cancelAnim();
-    setPlaying((p) => !p);
   }, [cancelAnim]);
 
+  handlePresetClickRef.current = handlePresetClick;
+
   const handleEdit = useCallback(() => {
-    if (playing) setPlaying(false);
+    cancelAnim();
     const stop = getNearestStop(morphValue, presets.length - 1);
     setMorphValue(stop);
     morphStateRef.current.value = stop;
     setEditing(true);
     setEditError(null);
-  }, [morphValue, playing]);
+  }, [morphValue, cancelAnim]);
 
   const handleDoneEditing = useCallback(() => {
     setEditing(false);
@@ -234,6 +277,14 @@ export default function Home() {
     controlMgrRef.current.setControlValue(id, value);
   }, []);
 
+  const [introDone, setIntroDone] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setIntroDone(true), 3000);
+    return () => clearTimeout(id);
+  }, []);
+
+  const fadeClass = introDone ? "" : "ui-fade-in";
+
   const editingStop = getNearestStop(morphValue, presets.length - 1);
 
   if (modelsLoading) {
@@ -259,22 +310,23 @@ export default function Home() {
         />
       </Suspense>
 
-      <div className="dot-grid ui-fade-in" />
+      {uiVisible && <div className={`dot-grid ${fadeClass}`} />}
 
-      {uiVisible && <div className="ui-fade-in"><HUD info={hudInfo} /></div>}
+      {uiVisible && <div className={fadeClass}><HUD info={hudInfo} /></div>}
 
-      <div className="ui-fade-in" style={{ position: "relative", zIndex: 20 }}>
+      <div className={fadeClass} style={{ position: "relative", zIndex: 20 }}>
         <SystemPanel
           settings={settings}
           onSettingsChange={setSettings}
           fps={fps}
           uiVisible={uiVisible}
           onToggleUi={() => setUiVisible((v) => !v)}
+          onEdit={handleEdit}
         />
       </div>
 
       {uiVisible && (
-        <div className="ui-fade-in">
+        <div className={fadeClass}>
           <ControlPanel
             controls={vizControls}
             onControlChange={handleControlChange}
@@ -283,15 +335,12 @@ export default function Home() {
       )}
 
       {uiVisible && (
-        <div className="ui-fade-in">
+        <div className={fadeClass}>
           <MorphSlider
             presets={presets}
             value={morphValue}
-            playing={playing}
             onValueChange={handleMorphChange}
             onPresetClick={handlePresetClick}
-            onTogglePlay={handleTogglePlay}
-            onEdit={handleEdit}
             disabled={editing}
           />
         </div>

@@ -46,6 +46,7 @@ export default function HUD({ info }: Props) {
         {typing && <span className="hud-cursor">|</span>}
       </h2>
       {info.description && <p className="hud-desc">{info.description}</p>}
+      <p className="hud-hint">Scroll or press ⬇ and ⬆ to cycle through presets</p>
     </div>
   );
 }
