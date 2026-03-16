@@ -259,36 +259,42 @@ export default function Home() {
         />
       </Suspense>
 
-      <div className="dot-grid" />
+      <div className="dot-grid ui-fade-in" />
 
-      {uiVisible && <HUD info={hudInfo} />}
+      {uiVisible && <div className="ui-fade-in"><HUD info={hudInfo} /></div>}
 
-      <SystemPanel
-        settings={settings}
-        onSettingsChange={setSettings}
-        fps={fps}
-        uiVisible={uiVisible}
-        onToggleUi={() => setUiVisible((v) => !v)}
-      />
+      <div className="ui-fade-in" style={{ position: "relative", zIndex: 20 }}>
+        <SystemPanel
+          settings={settings}
+          onSettingsChange={setSettings}
+          fps={fps}
+          uiVisible={uiVisible}
+          onToggleUi={() => setUiVisible((v) => !v)}
+        />
+      </div>
 
       {uiVisible && (
-        <ControlPanel
-          controls={vizControls}
-          onControlChange={handleControlChange}
-        />
+        <div className="ui-fade-in">
+          <ControlPanel
+            controls={vizControls}
+            onControlChange={handleControlChange}
+          />
+        </div>
       )}
 
       {uiVisible && (
-        <MorphSlider
-          presets={presets}
-          value={morphValue}
-          playing={playing}
-          onValueChange={handleMorphChange}
-          onPresetClick={handlePresetClick}
-          onTogglePlay={handleTogglePlay}
-          onEdit={handleEdit}
-          disabled={editing}
-        />
+        <div className="ui-fade-in">
+          <MorphSlider
+            presets={presets}
+            value={morphValue}
+            playing={playing}
+            onValueChange={handleMorphChange}
+            onPresetClick={handlePresetClick}
+            onTogglePlay={handleTogglePlay}
+            onEdit={handleEdit}
+            disabled={editing}
+          />
+        </div>
       )}
 
       {uiVisible && editing && (

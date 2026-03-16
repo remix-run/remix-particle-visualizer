@@ -4,15 +4,31 @@ import type { ControlManager } from "./controls";
 
 const VERTEX_SHADER = /* glsl */ `
   attribute float aSize;
+  attribute float aRandom;
   varying vec3 vColor;
   varying float vAlpha;
   varying float vViewDist;
+  varying float vIntro;
+  varying float vPulse;
   uniform float uPointSize;
   uniform float uPixelRatio;
+  uniform float uIntroProgress;
 
   void main() {
     vColor = color;
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    float delay = aRandom * 0.7;
+    float fallDuration = 0.5;
+    float local = clamp((uIntroProgress - delay) / fallDuration, 0.0, 1.0);
+    float inv = 1.0 - local;
+    float easedLocal = 1.0 - inv * inv * inv;
+    vIntro = easedLocal;
+
+    float landTime = delay + fallDuration;
+    float sinceL = max(uIntroProgress - landTime, 0.0);
+    vPulse = (local >= 1.0) ? exp(-sinceL * 8.0) : 0.0;
+
+    float introOffset = (1.0 - easedLocal) * (30.0 + aRandom * 20.0);
+    vec4 mvPosition = modelViewMatrix * vec4(position + vec3(0.0, introOffset, 0.0), 1.0);
     float dist = -mvPosition.z;
     vViewDist = dist;
     gl_PointSize = aSize * uPointSize * uPixelRatio * (300.0 / dist);
@@ -26,6 +42,8 @@ const FRAGMENT_SHADER = /* glsl */ `
   varying vec3 vColor;
   varying float vAlpha;
   varying float vViewDist;
+  varying float vIntro;
+  varying float vPulse;
   uniform float uFogEnabled;
   uniform float uFogNear;
   uniform float uFogFar;
@@ -35,8 +53,8 @@ const FRAGMENT_SHADER = /* glsl */ `
     if (d > 0.5) discard;
     float glow = exp(-d * 6.0);
     float core = smoothstep(0.5, 0.0, d);
-    float alpha = (glow * 0.6 + core * 0.4) * vAlpha;
-    vec3 col = vColor * (0.8 + core * 0.4);
+    float alpha = (glow * 0.6 + core * 0.4) * vAlpha * vIntro;
+    vec3 col = vColor * (0.8 + core * 0.4) * (1.0 + vPulse * 3.0);
 
     if (uFogEnabled > 0.5) {
       float fogFactor = smoothstep(uFogNear, uFogFar, vViewDist);
@@ -71,7 +89,9 @@ export class ParticleSystem {
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
+    const randoms = new Float32Array(count);
     sizes.fill(1.0);
+    for (let i = 0; i < count; i++) randoms[i] = Math.random();
 
     this.geometry = new THREE.BufferGeometry();
     this.positionAttr = new THREE.BufferAttribute(positions, 3);
@@ -81,6 +101,7 @@ export class ParticleSystem {
     this.geometry.setAttribute("position", this.positionAttr);
     this.geometry.setAttribute("color", this.colorAttr);
     this.geometry.setAttribute("aSize", this.sizeAttr);
+    this.geometry.setAttribute("aRandom", new THREE.BufferAttribute(randoms, 1));
 
     this.material = new THREE.ShaderMaterial({
       vertexShader: VERTEX_SHADER,
@@ -88,6 +109,7 @@ export class ParticleSystem {
       uniforms: {
         uPointSize: { value: pointSize },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+        uIntroProgress: { value: 0.0 },
         uFogEnabled: { value: 0.0 },
         uFogNear: { value: 10.0 },
         uFogFar: { value: 180.0 },
@@ -112,6 +134,12 @@ export class ParticleSystem {
 
   setSeparation(value: number) {
     this.separation = value;
+  }
+
+  setIntroProgress(value: number) {
+    if (this.material) {
+      this.material.uniforms.uIntroProgress.value = value;
+    }
   }
 
   setFog(enabled: boolean, near: number, far: number) {

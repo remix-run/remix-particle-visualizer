@@ -111,6 +111,8 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       particles.setPointSize(settingsRef.current.pointSize);
       particles.setSeparation(settingsRef.current.particleSeparation);
 
+      particles.setIntroProgress(Math.min(time / 3.5, 1.5));
+
       const currentMorph = morphValueRef.current;
       if (Math.abs(currentMorph - prevMorphRef.current) > 0.001) {
         prevMorphRef.current = currentMorph;
