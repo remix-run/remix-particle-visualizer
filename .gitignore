@@ -2,6 +2,9 @@
 .env
 /node_modules/
 
+# Source models (GLBs baked to .pts via `npm run bake`)
+/source-models/
+
 # React Router
 /.react-router/
 /build/

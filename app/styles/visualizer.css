@@ -362,10 +362,10 @@
 
 .morph-track {
   position: relative;
-  width: 6px;
+  width: 10px;
   height: 100%;
   background: rgba(255, 255, 255, 0.06);
-  border-radius: 3px;
+  border-radius: 5px;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -376,7 +376,7 @@
   left: 0;
   width: 100%;
   background: #2dacf9;
-  border-radius: 3px;
+  border-radius: 5px;
   box-shadow: 0 0 14px rgba(45, 172, 249, 0.6), 0 0 28px rgba(45, 172, 249, 0.3);
   pointer-events: none;
 }
@@ -384,8 +384,8 @@
 .morph-thumb {
   position: absolute;
   left: 50%;
-  width: 18px;
-  height: 18px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #2dacf9;
   border: 2px solid rgba(45, 172, 249, 0.5);
@@ -398,10 +398,10 @@
 .morph-stop {
   position: absolute;
   left: 50%;
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.9);
   transform: translate(-50%, -50%);
   pointer-events: none;
   transition: all 0.3s;

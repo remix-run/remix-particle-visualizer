@@ -220,16 +220,18 @@ export class ParticleSystem {
       }
     } else {
       const t = blend * blend * (3 - 2 * blend); // smoothstep
+      const initialsA = new Map<string, number>();
+      const initialsB = new Map<string, number>();
       const addControlA = (id: string, label: string, min: number, max: number, initial: number) => {
-        const v = controlMgr.addControl(id, label, min, max, initial);
+        controlMgr.addControl(id, label, min, max, initial);
+        initialsA.set(id, initial);
         if (id === "_separation") sepA = initial;
-        return v;
+        return initial;
       };
       const addControlBFn = (id: string, _label: string, _min: number, _max: number, initial: number) => {
-        const existing = controlMgr.controls.get(id);
-        const v = existing ? existing.value : initial;
+        initialsB.set(id, initial);
         if (id === "_separation") sepB = initial;
-        return v;
+        return initial;
       };
       const noopInfo = () => {};
       const noopAnnotate = () => {};
@@ -255,9 +257,14 @@ export class ParticleSystem {
         colors[idx + 2] = this.colorA.b * invT + this.colorB.b * t;
       }
 
-      const sepCtrl = controlMgr.controls.get("_separation");
-      if (sepCtrl) {
-        sepCtrl.value = sepA + (sepB - sepA) * t;
+      for (const [id, ctrl] of controlMgr.controls) {
+        const a = initialsA.get(id);
+        const b = initialsB.get(id);
+        if (a !== undefined && b !== undefined) {
+          ctrl.value = a + (b - a) * t;
+        } else if (a !== undefined) {
+          ctrl.value = a;
+        }
       }
     }
 

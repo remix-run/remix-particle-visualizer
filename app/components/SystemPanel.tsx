@@ -107,23 +107,6 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
           </div>
 
           <div className="control-row">
-            <label className="control-label">Particle Distance</label>
-            <div className="control-slider-row">
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={settings.particleSeparation}
-                onChange={(e) => update({ particleSeparation: parseFloat(e.target.value) })}
-                className="control-slider"
-                style={sliderFillStyle(settings.particleSeparation, 0, 1)}
-              />
-              <span className="control-value">{settings.particleSeparation.toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div className="control-row">
             <label className="control-label">Background</label>
             <input
               type="color"
@@ -164,6 +147,40 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
                 style={sliderFillStyle(settings.bloomThreshold, 0, 1)}
               />
               <span className="control-value">{settings.bloomThreshold.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="control-row">
+            <label className="control-label">Depth of Field</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={0}
+                max={5}
+                step={0.1}
+                value={settings.dofAmount}
+                onChange={(e) => update({ dofAmount: parseFloat(e.target.value) })}
+                className="control-slider"
+                style={sliderFillStyle(settings.dofAmount, 0, 5)}
+              />
+              <span className="control-value">{settings.dofAmount.toFixed(1)}</span>
+            </div>
+          </div>
+
+          <div className="control-row">
+            <label className="control-label">Focus Distance</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={5}
+                max={300}
+                step={1}
+                value={settings.dofFocus}
+                onChange={(e) => update({ dofFocus: parseFloat(e.target.value) })}
+                className="control-slider"
+                style={sliderFillStyle(settings.dofFocus, 5, 300)}
+              />
+              <span className="control-value">{settings.dofFocus}</span>
             </div>
           </div>
 

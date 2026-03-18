@@ -1,111 +1,55 @@
-import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
-
 export interface ModelData {
   positions: Float32Array;
   colors: Float32Array | null;
 }
 
-export async function loadModelPoints(
-  url: string,
-  maxCount: number = 100_000,
-): Promise<ModelData> {
-  const loader = new GLTFLoader();
-  const gltf = await loader.loadAsync(url);
+const PTS_HEADER = 36;
 
-  const meshes: THREE.Mesh[] = [];
-  gltf.scene.traverse((child) => {
-    if ((child as THREE.Mesh).isMesh) {
-      meshes.push(child as THREE.Mesh);
-    }
-  });
+export async function loadModelPoints(url: string): Promise<ModelData> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Failed to fetch model: ${url} (${response.status})`);
 
-  if (meshes.length === 0) {
-    throw new Error(`No meshes found in model: ${url}`);
-  }
+  const buf = await response.arrayBuffer();
+  const view = new DataView(buf);
 
-  let targetMesh: THREE.Mesh;
+  const magic = String.fromCharCode(
+    view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3),
+  );
+  if (magic !== "PTS1") throw new Error(`Unknown model format: ${url}`);
 
-  if (meshes.length === 1) {
-    targetMesh = meshes[0];
-  } else {
-    const geometries = meshes.map((m) => {
-      const geo = m.geometry.clone();
-      geo.applyMatrix4(m.matrixWorld);
-      return geo;
-    });
-    const merged = mergeGeometries(geometries);
-    targetMesh = new THREE.Mesh(merged);
-    geometries.forEach((g) => g.dispose());
-  }
+  const count = view.getUint32(4, true);
+  const hasColors = (view.getUint32(8, true) & 1) !== 0;
 
-  const hasVertexColors = targetMesh.geometry.hasAttribute("color");
-  const sampler = new MeshSurfaceSampler(targetMesh).build();
+  const minX = view.getFloat32(12, true);
+  const minY = view.getFloat32(16, true);
+  const minZ = view.getFloat32(20, true);
+  const maxX = view.getFloat32(24, true);
+  const maxY = view.getFloat32(28, true);
+  const maxZ = view.getFloat32(32, true);
+  const rangeX = maxX - minX;
+  const rangeY = maxY - minY;
+  const rangeZ = maxZ - minZ;
 
-  const positions = new Float32Array(maxCount * 3);
-  const colors = hasVertexColors ? new Float32Array(maxCount * 3) : null;
-  const tempPos = new THREE.Vector3();
-  const tempColor = new THREE.Color();
-
-  for (let i = 0; i < maxCount; i++) {
-    if (hasVertexColors) {
-      sampler.sample(tempPos, undefined, tempColor);
-    } else {
-      sampler.sample(tempPos);
-    }
+  const positions = new Float32Array(count * 3);
+  let offset = PTS_HEADER;
+  for (let i = 0; i < count; i++) {
     const idx = i * 3;
-    positions[idx] = tempPos.x;
-    positions[idx + 1] = tempPos.y;
-    positions[idx + 2] = tempPos.z;
+    const qx = view.getInt16(offset, true); offset += 2;
+    const qy = view.getInt16(offset, true); offset += 2;
+    const qz = view.getInt16(offset, true); offset += 2;
+    positions[idx]     = minX + ((qx + 32767) / 65534) * rangeX;
+    positions[idx + 1] = minY + ((qy + 32767) / 65534) * rangeY;
+    positions[idx + 2] = minZ + ((qz + 32767) / 65534) * rangeZ;
+  }
 
-    if (colors) {
-      colors[idx] = tempColor.r;
-      colors[idx + 1] = tempColor.g;
-      colors[idx + 2] = tempColor.b;
+  let colors: Float32Array | null = null;
+  if (hasColors) {
+    colors = new Float32Array(count * 3);
+    for (let i = 0; i < count * 3; i++) {
+      colors[i] = view.getUint8(offset) / 255;
+      offset++;
     }
   }
 
   return { positions, colors };
-}
-
-function mergeGeometries(geometries: THREE.BufferGeometry[]): THREE.BufferGeometry {
-  let totalVerts = 0;
-  let totalIndices = 0;
-
-  for (const geo of geometries) {
-    totalVerts += geo.getAttribute("position").count;
-    totalIndices += geo.index ? geo.index.count : geo.getAttribute("position").count;
-  }
-
-  const mergedPositions = new Float32Array(totalVerts * 3);
-  const mergedIndices = new Uint32Array(totalIndices);
-  let vertOffset = 0;
-  let idxOffset = 0;
-
-  for (const geo of geometries) {
-    const pos = geo.getAttribute("position");
-    for (let i = 0; i < pos.count * 3; i++) {
-      mergedPositions[vertOffset * 3 + i] = (pos.array as Float32Array)[i];
-    }
-
-    if (geo.index) {
-      for (let i = 0; i < geo.index.count; i++) {
-        mergedIndices[idxOffset + i] = geo.index.array[i] + vertOffset;
-      }
-      idxOffset += geo.index.count;
-    } else {
-      for (let i = 0; i < pos.count; i++) {
-        mergedIndices[idxOffset + i] = vertOffset + i;
-      }
-      idxOffset += pos.count;
-    }
-
-    vertOffset += pos.count;
-  }
-
-  const merged = new THREE.BufferGeometry();
-  merged.setAttribute("position", new THREE.BufferAttribute(mergedPositions, 3));
-  merged.setIndex(new THREE.BufferAttribute(mergedIndices, 1));
-  return merged;
 }

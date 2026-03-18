@@ -1,61 +1,40 @@
 import type { Preset } from "./types";
 
-const jellyfish: Preset = {
-  name: "Jellyfish",
+const racecar: Preset = {
+  name: "Racecar",
+  modelUrl: "/models/racecar.pts",
   code: `
-addControl("_separation", "Particle Distance", 0, 1, 1);
-const pulse = addControl("pulse", "Pulse Speed", 0.2, 4.0, 1.2);
-const tentLen = addControl("tentLen", "Tentacle Length", 10, 60, 30);
-const glow = addControl("glow", "Glow Intensity", 0.3, 2.0, 1.0);
-const drift = addControl("drift", "Drift", 0, 5, 1.5);
+addControl("_separation", "Particle Distance", 0, 1, 0);
+const scale = addControl("scale", "Scale", 5, 150, 90);
+const spin = addControl("spin", "Spin Speed", 0, 1.0, 0.2);
+const shimmer = addControl("shimmer", "Shimmer", 0, 2.0, 0.6);
 
-const ratio = i / count;
-const bellCount = Math.floor(count * 0.55);
-const isBell = i < bellCount;
+const angle = time * spin;
+const cosA = Math.cos(angle);
+const sinA = Math.sin(angle);
 
-const spin = time * 0.15;
-const cosS = Math.cos(spin);
-const sinS = Math.sin(spin);
+const idx = i * 3;
+const mx = modelPositions[idx] * scale;
+const my = modelPositions[idx + 1] * scale;
+const mz = modelPositions[idx + 2] * scale;
 
-if (isBell) {
-  const t = i / bellCount;
-  const theta = t * Math.PI * 2 * 40;
-  const phi = Math.sqrt(t) * Math.PI * 0.52;
-  const breathe = 1.0 + 0.15 * Math.sin(time * pulse);
-  const r = 20 * Math.sin(phi) * breathe;
-  const bellY = 20 * Math.cos(phi) * breathe;
-  const ripple = 1.0 + 0.05 * Math.sin(theta * 0.5 + time * 3.0);
-  const lx = Math.cos(theta) * r * ripple;
-  const lz = Math.sin(theta) * r * ripple;
-  target.set(lx * cosS - lz * sinS, bellY - 5, lx * sinS + lz * cosS);
-  const h = 0.55 + 0.15 * Math.sin(t * 6.28 + time * 0.5);
-  const l = 0.4 + 0.3 * glow * Math.pow(Math.sin(t * 3.14), 2) + 0.1 * Math.sin(time * 2.0 + i * 0.01);
-  color.setHSL(h, 0.9, Math.min(l, 1.0));
-} else {
-  const tentI = i - bellCount;
-  const tentCount = count - bellCount;
-  const numStrands = 10;
-  const strand = tentI % numStrands;
-  const posInStrand = Math.floor(tentI / numStrands) / Math.floor(tentCount / numStrands);
-  const strandAngle = (strand / numStrands) * Math.PI * 2;
-  const attachR = 18 * Math.sin(Math.PI * 0.5) * (1.0 + 0.15 * Math.sin(time * pulse));
-  const baseX = Math.cos(strandAngle) * attachR * (0.6 + 0.4 * Math.sin(strand * 1.7));
-  const baseZ = Math.sin(strandAngle) * attachR * (0.6 + 0.4 * Math.cos(strand * 1.3));
-  const depth = posInStrand * tentLen;
-  const wave = Math.sin(posInStrand * 4.0 + time * 1.5 + strand * 0.8) * (2 + posInStrand * drift * 3);
-  const wave2 = Math.cos(posInStrand * 3.0 + time * 1.2 + strand * 1.2) * (1 + posInStrand * drift * 2);
-  const lx = baseX + wave;
-  const lz = baseZ + wave2;
-  target.set(lx * cosS - lz * sinS, -5 - depth, lx * sinS + lz * cosS);
-  const h = 0.6 + 0.1 * Math.sin(posInStrand * 3.0 + strand);
-  const l = 0.3 + 0.4 * glow * (1.0 - posInStrand * 0.5) * (0.5 + 0.5 * Math.sin(time * 3.0 + posInStrand * 10.0));
-  color.setHSL(h, 0.85, Math.max(0.1, Math.min(l, 1.0)));
-}
+target.set(mx * cosA - mz * sinA, my, mx * sinA + mz * cosA);
+
+const rawZ = modelPositions[idx + 2];
+const rawY = modelPositions[idx + 1];
+const front = rawZ * 0.6 + rawY * 0.4;
+const norm = front * 4.0 + 0.5;
+const bright = Math.max(0.0, Math.min(1.0, norm));
+const pulse = 1.0 + shimmer * 0.08 * Math.sin(time * 3.0 + i * 0.03);
+const lum = (0.12 + bright * 0.55) * pulse;
+color.setRGB(
+  Math.min(0.0 * lum, 1.0),
+  Math.min(0.50 * lum + 0.08, 1.0),
+  Math.min(0.24 * lum, 1.0)
+);
 
 if (i === 0) {
-  setInfo("Bioluminescent Jellyfish", "A deep-sea medusa pulsing with light");
-  annotate("bell", new THREE.Vector3(0, 15, 0), "Bell");
-  annotate("tentacles", new THREE.Vector3(0, -25, 0), "Tentacles");
+  setInfo("Racecar", "Ligier JS P325 LMP3 prototype racer");
 }
 `.trim(),
 };
@@ -336,10 +315,10 @@ if (i === 0) {
 
 const remixLogo: Preset = {
   name: "Remix Logo",
-  modelUrl: "/models/remix-logo.glb",
+  modelUrl: "/models/remix-logo.pts",
   code: `
 addControl("_separation", "Particle Distance", 0, 1, 0);
-const scale = addControl("scale", "Scale", 5, 80, 27);
+const scale = addControl("scale", "Scale", 5, 80, 26);
 const spin = time * 0.15;
 const cosS = Math.cos(spin);
 const sinS = Math.sin(spin);
@@ -363,4 +342,4 @@ if (i === 0) {
 `.trim(),
 };
 
-export const presets: Preset[] = [remixLogo, jellyfish, racetrack, galaxy, tesseract];
+export const presets: Preset[] = [remixLogo, racecar, racetrack, galaxy, tesseract];

@@ -69,7 +69,7 @@ export default function MorphSlider({
           onMouseDown={handlePointerDown}
           style={{ opacity: disabled ? 0.4 : 1, pointerEvents: disabled ? "none" : "auto" }}
         >
-          <div className="morph-track-fill" style={{ height: `${pct}%` }} />
+          <div className="morph-track-fill" style={{ top: -5, height: `calc(${pct}% + 10px)` }} />
           <div className="morph-thumb" style={{ top: `${pct}%` }} />
           {presets.map((_, stop) => (
             <div

@@ -27,6 +27,14 @@ export class ControlManager {
     this.frameControlIds.add(id);
     const existing = this.controls.get(id);
     if (existing) {
+      if (existing.initial !== initial) {
+        existing.initial = initial;
+        existing.value = initial;
+        existing.label = label;
+        existing.min = min;
+        existing.max = max;
+        this.dirty = true;
+      }
       return existing.value;
     }
     const def: ControlDef = { id, label, min, max, value: initial, initial };
