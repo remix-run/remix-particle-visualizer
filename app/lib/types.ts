@@ -44,7 +44,7 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   particleCount: 30000,
   pointSize: 0.4,
   backgroundColor: "#000000",
-  bloomStrength: 0.8,
+  bloomStrength: 1.5,
   bloomThreshold: 0,
   dofAmount: 0,
   dofFocus: 80,

@@ -2,6 +2,7 @@ import { Suspense, lazy, useState, useRef, useCallback, useEffect } from "react"
 import type { Route } from "./+types/home";
 import { presets } from "~/lib/presets";
 import { compile } from "~/lib/executor";
+import { benchmarkParticleCount } from "~/lib/benchmark";
 import { validate } from "~/lib/validator";
 import { ControlManager } from "~/lib/controls";
 import { createMorphState, getActiveFunctions, getNearestStop } from "~/lib/morph";
@@ -13,6 +14,7 @@ import MorphSlider from "~/components/MorphSlider";
 import ControlPanel from "~/components/ControlPanel";
 import SystemPanel from "~/components/SystemPanel";
 import HUD from "~/components/HUD";
+import LoaderRunner from "~/components/LoaderRunner";
 
 const ParticleCanvas = lazy(() => import("~/components/ParticleCanvas.client"));
 const CodeEditor = lazy(() => import("~/components/CodeEditor.client"));
@@ -46,9 +48,8 @@ export default function Home() {
   const [vizControls, setVizControls] = useState<ControlDef[]>([]);
   const [hudInfo, setHudInfo] = useState<InfoState>({ title: "", description: "" });
   const [morphValue, setMorphValue] = useState(initialPresetIndex);
-  const [modelsLoading, setModelsLoading] = useState(() =>
-    presets.some((p) => p.modelUrl),
-  );
+  const [modelsLoading, setModelsLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState("Loading models...");
 
   const controlMgrRef = useRef(new ControlManager());
   const morphStateRef = useRef(createMorphState());
@@ -75,6 +76,16 @@ export default function Home() {
         modelDataRef.current = results;
       } catch (err) {
         console.error("Failed to load model(s):", err);
+      }
+
+      setLoadingStatus("Calibrating performance…");
+      try {
+        const optimalCount = await benchmarkParticleCount();
+        if (cancelled) return;
+        console.log(`Benchmark: optimal particle count = ${optimalCount.toLocaleString()}`);
+        setSettings((prev) => ({ ...prev, particleCount: optimalCount }));
+      } catch (err) {
+        console.warn("Benchmark failed, keeping default:", err);
       }
 
       const compiled: ParticleFn[] = [];
@@ -151,7 +162,7 @@ export default function Home() {
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      applyDelta(e.deltaY > 0 ? 0.05 : -0.05);
+      applyDelta(e.deltaY > 0 ? 0.02 : -0.02);
     };
 
     let touchStartY = 0;
@@ -291,7 +302,8 @@ export default function Home() {
     return (
       <div className="visualizer-root">
         <div className="loading-screen">
-          <div className="loading-text">Loading models...</div>
+          <LoaderRunner />
+          <div className="loading-text">{loadingStatus}</div>
         </div>
       </div>
     );
@@ -299,7 +311,7 @@ export default function Home() {
 
   return (
     <div className="visualizer-root">
-      <Suspense fallback={<div className="loading-screen"><div className="loading-text">Initializing Particles...</div></div>}>
+      <Suspense fallback={<div className="loading-screen"><LoaderRunner /><div className="loading-text">Initializing Particles...</div></div>}>
         <ParticleCanvas
           settings={settings}
           controlMgr={controlMgrRef.current}

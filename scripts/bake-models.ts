@@ -107,6 +107,100 @@ function loadGLB(filePath: string): Promise<THREE.Group> {
   });
 }
 
+const OVERSAMPLE = 10;
+
+function poissonFilter(
+  candidatePos: Float32Array,
+  candidateCol: Float32Array | null,
+  candidateCount: number,
+  targetCount: number,
+) {
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < candidateCount; i++) {
+    for (let c = 0; c < 3; c++) {
+      const v = candidatePos[i * 3 + c];
+      if (v < min[c]) min[c] = v;
+      if (v > max[c]) max[c] = v;
+    }
+  }
+
+  const dx = max[0] - min[0] || 1;
+  const dy = max[1] - min[1] || 1;
+  const dz = max[2] - min[2] || 1;
+  const volume = dx * dy * dz;
+  const minDist = Math.pow(volume / targetCount, 1 / 3) * 0.3;
+  const minDist2 = minDist * minDist;
+  const cellSize = minDist;
+
+  const gx = Math.ceil(dx / cellSize) + 1;
+  const gy = Math.ceil(dy / cellSize) + 1;
+  const gz = Math.ceil(dz / cellSize) + 1;
+  const grid = new Map<number, number[]>();
+
+  const toKey = (ix: number, iy: number, iz: number) => ix + iy * gx + iz * gx * gy;
+
+  const positions = new Float32Array(targetCount * 3);
+  const colors = candidateCol ? new Float32Array(targetCount * 3) : null;
+  let accepted = 0;
+
+  for (let ci = 0; ci < candidateCount && accepted < targetCount; ci++) {
+    const px = candidatePos[ci * 3];
+    const py = candidatePos[ci * 3 + 1];
+    const pz = candidatePos[ci * 3 + 2];
+
+    const ix = Math.floor((px - min[0]) / cellSize);
+    const iy = Math.floor((py - min[1]) / cellSize);
+    const iz = Math.floor((pz - min[2]) / cellSize);
+
+    let tooClose = false;
+    outer:
+    for (let nx = ix - 1; nx <= ix + 1; nx++) {
+      for (let ny = iy - 1; ny <= iy + 1; ny++) {
+        for (let nz = iz - 1; nz <= iz + 1; nz++) {
+          if (nx < 0 || ny < 0 || nz < 0 || nx >= gx || ny >= gy || nz >= gz) continue;
+          const cell = grid.get(toKey(nx, ny, nz));
+          if (!cell) continue;
+          for (const ei of cell) {
+            const ex = positions[ei * 3] - px;
+            const ey = positions[ei * 3 + 1] - py;
+            const ez = positions[ei * 3 + 2] - pz;
+            if (ex * ex + ey * ey + ez * ez < minDist2) {
+              tooClose = true;
+              break outer;
+            }
+          }
+        }
+      }
+    }
+
+    if (tooClose) continue;
+
+    const ai = accepted;
+    positions[ai * 3] = px;
+    positions[ai * 3 + 1] = py;
+    positions[ai * 3 + 2] = pz;
+    if (colors && candidateCol) {
+      colors[ai * 3] = candidateCol[ci * 3];
+      colors[ai * 3 + 1] = candidateCol[ci * 3 + 1];
+      colors[ai * 3 + 2] = candidateCol[ci * 3 + 2];
+    }
+
+    const key = toKey(ix, iy, iz);
+    const cell = grid.get(key);
+    if (cell) cell.push(ai);
+    else grid.set(key, [ai]);
+
+    accepted++;
+  }
+
+  if (accepted < targetCount) {
+    console.warn(`  Poisson filter accepted ${accepted}/${targetCount} (reduce minDist or increase oversample)`);
+  }
+
+  return { positions, colors, count: accepted };
+}
+
 function sampleSurface(scene: THREE.Group, count: number) {
   const meshes: THREE.Mesh[] = [];
   scene.traverse((child) => {
@@ -130,29 +224,31 @@ function sampleSurface(scene: THREE.Group, count: number) {
   const hasVertexColors = targetMesh.geometry.hasAttribute("color");
   const sampler = new MeshSurfaceSampler(targetMesh).build();
 
-  const positions = new Float32Array(count * 3);
-  const colors = hasVertexColors ? new Float32Array(count * 3) : null;
+  const poolSize = count * OVERSAMPLE;
+  const poolPos = new Float32Array(poolSize * 3);
+  const poolCol = hasVertexColors ? new Float32Array(poolSize * 3) : null;
   const tempPos = new THREE.Vector3();
   const tempColor = new THREE.Color();
 
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < poolSize; i++) {
     if (hasVertexColors) {
       sampler.sample(tempPos, undefined, tempColor);
     } else {
       sampler.sample(tempPos);
     }
     const idx = i * 3;
-    positions[idx] = tempPos.x;
-    positions[idx + 1] = tempPos.y;
-    positions[idx + 2] = tempPos.z;
-    if (colors) {
-      colors[idx] = tempColor.r;
-      colors[idx + 1] = tempColor.g;
-      colors[idx + 2] = tempColor.b;
+    poolPos[idx] = tempPos.x;
+    poolPos[idx + 1] = tempPos.y;
+    poolPos[idx + 2] = tempPos.z;
+    if (poolCol) {
+      poolCol[idx] = tempColor.r;
+      poolCol[idx + 1] = tempColor.g;
+      poolCol[idx + 2] = tempColor.b;
     }
   }
 
-  return { positions, colors };
+  const { positions, colors, count: accepted } = poissonFilter(poolPos, poolCol, poolSize, count);
+  return { positions, colors, accepted };
 }
 
 function writePts(
@@ -230,12 +326,13 @@ async function main() {
     process.stdout.write(`  ${file} → ${outName} ... `);
 
     const scene = await loadGLB(srcPath);
-    const { positions, colors } = sampleSurface(scene, MAX_POINTS);
-    const { rawBytes, ptsBytes } = writePts(outPath, positions, colors, MAX_POINTS);
+    const { positions, colors, accepted } = sampleSurface(scene, MAX_POINTS);
+    const pointCount = Math.min(accepted, MAX_POINTS);
+    const { rawBytes, ptsBytes } = writePts(outPath, positions, colors, pointCount);
     const glbSize = fs.statSync(srcPath).size;
 
     console.log(
-      `done  (GLB ${fmt(glbSize)} → PTS ${fmt(ptsBytes)}, ` +
+      `done  ${pointCount} pts (GLB ${fmt(glbSize)} → PTS ${fmt(ptsBytes)}, ` +
       `${((1 - ptsBytes / glbSize) * 100).toFixed(0)}% smaller)`
     );
   }

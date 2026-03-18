@@ -24,13 +24,15 @@ const VERTEX_SHADER = /* glsl */ `
     float local = clamp((uIntroProgress - delay) / fallDuration, 0.0, 1.0);
     float inv = 1.0 - local;
     float easedLocal = 1.0 - inv * inv * inv;
-    vIntro = easedLocal;
-
     float landTime = delay + fallDuration;
     float sinceL = max(uIntroProgress - landTime, 0.0);
     vPulse = (local >= 1.0) ? exp(-sinceL * 8.0) : 0.0;
 
-    float introOffset = (1.0 - easedLocal) * (30.0 + aRandom * 20.0);
+    float landed = step(1.0, local);
+    float opacityRamp = 1.0 - exp(-sinceL * 3.0);
+    vIntro = mix(easedLocal * 0.5, 0.5 + 0.5 * opacityRamp, landed);
+
+    float introOffset = (1.0 - easedLocal) * (10.0 + aRandom * 6.0);
     vec4 mvPosition = modelViewMatrix * vec4(position + vec3(0.0, introOffset, 0.0), 1.0);
     float dist = -mvPosition.z;
     vViewDist = dist;
@@ -69,7 +71,7 @@ const FRAGMENT_SHADER = /* glsl */ `
     float alpha = (glow * 0.6 + core * 0.4) * vAlpha * vIntro;
     alpha *= mix(1.0, 0.35, vCoc);
 
-    vec3 col = vColor * (0.8 + core * 0.4) * (1.0 + vPulse * 3.0);
+    vec3 col = vColor * (0.8 + core * 0.4) * (1.0 + vPulse * 9.0);
 
     if (uFogEnabled > 0.0) {
       float fogFactor = smoothstep(uFogNear, uFogFar, vViewDist) * uFogEnabled;

@@ -5,7 +5,7 @@ const racecar: Preset = {
   modelUrl: "/models/racecar.pts",
   code: `
 addControl("_separation", "Particle Distance", 0, 1, 0);
-const scale = addControl("scale", "Scale", 5, 150, 90);
+const scale = addControl("scale", "Scale", 5, 150, 80);
 const spin = addControl("spin", "Spin Speed", 0, 1.0, 0.2);
 const shimmer = addControl("shimmer", "Shimmer", 0, 2.0, 0.6);
 
