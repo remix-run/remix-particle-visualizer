@@ -156,11 +156,11 @@ if (i < surfaceEnd) {
 }
 `.trim();
 
-const TARGET_FRAME_MS = 14.0;
-const WARMUP_FRAMES = 5;
-const BENCH_FRAMES = 20;
-const CANDIDATES = [10000, 20000, 30000, 50000, 75000, 100000];
-const FALLBACK_COUNT = 30000;
+const TARGET_FRAME_MS = 10.0;
+const WARMUP_FRAMES = 8;
+const BENCH_FRAMES = 30;
+const CANDIDATES = [10000, 15000, 20000, 25000, 30000, 40000, 50000];
+const FALLBACK_COUNT = 20000;
 
 export function benchmarkParticleCount(): Promise<number> {
   return new Promise((resolve) => {
@@ -249,9 +249,9 @@ export function benchmarkParticleCount(): Promise<number> {
             requestAnimationFrame(frame);
           } else {
             times.sort((a, b) => a - b);
-            const median = times[Math.floor(times.length / 2)];
+            const p90 = times[Math.floor(times.length * 0.9)];
 
-            if (median <= TARGET_FRAME_MS) {
+            if (p90 <= TARGET_FRAME_MS) {
               bestCount = count;
               candidateIdx++;
               testNext();
