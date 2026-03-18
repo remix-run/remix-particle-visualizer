@@ -254,8 +254,8 @@ const tesseract: Preset = {
 addControl("_separation", "Particle Distance", 0, 1, 0.2);
 const speedXW = addControl("sxw", "Rotation XW", 0.1, 2.0, 0.5);
 const speedYZ = addControl("syz", "Rotation YZ", 0.1, 2.0, 0.3);
-const projDist = addControl("proj", "Projection Dist", 1.5, 5.0, 2.5);
-const edgeDens = addControl("dens", "Edge Spread", 0.5, 3.0, 1.0);
+const projDist = addControl("proj", "Projection Dist", 1.5, 5.0, 1.5);
+const edgeDens = addControl("dens", "Edge Spread", 0.5, 3.0, 1.09);
 
 const numEdges = 32;
 const particlesPerEdge = Math.floor(count / numEdges);
@@ -324,22 +324,35 @@ const remixLogo: Preset = {
   code: `
 addControl("_separation", "Particle Distance", 0, 1, 0);
 const scale = addControl("scale", "Scale", 5, 80, 26);
-const spin = time * 0.15;
-const cosS = Math.cos(spin);
-const sinS = Math.sin(spin);
+const rotX = addControl("rotX", "Rotate X", -180, 180, 0) * Math.PI / 180;
+const rotY = addControl("rotY", "Rotate Y", -180, 180, 0) * Math.PI / 180;
+const rotZ = addControl("rotZ", "Rotate Z", -180, 180, 0) * Math.PI / 180;
 
 const idx = i * 3;
-const mx = modelPositions[idx] * scale;
-const my = modelPositions[idx + 1] * scale;
-const mz = modelPositions[idx + 2] * scale;
+let px = modelPositions[idx] * scale;
+let py = modelPositions[idx + 1] * scale;
+let pz = modelPositions[idx + 2] * scale;
 
-target.set(mx * cosS - mz * sinS, my, mx * sinS + mz * cosS);
+const cx = Math.cos(rotX), sx = Math.sin(rotX);
+const t1y = py * cx - pz * sx;
+const t1z = py * sx + pz * cx;
+py = t1y; pz = t1z;
+
+const cy = Math.cos(rotY), sy = Math.sin(rotY);
+const t2x = px * cy + pz * sy;
+const t2z = -px * sy + pz * cy;
+px = t2x; pz = t2z;
+
+const cz = Math.cos(rotZ), sz = Math.sin(rotZ);
+const t3x = px * cz - py * sz;
+const t3y = px * sz + py * cz;
+px = t3x; py = t3y;
+
+target.set(px, py, pz);
 
 const t = i / count;
-const h = 0.0;
-const s = 0.0;
 const l = 0.5 + 0.3 * Math.sin(t * 6.28 + time * 0.5);
-color.setHSL(h, s, l);
+color.setHSL(0.0, 0.0, l);
 
 if (i === 0) {
   setInfo("Remix Logo", "The Remix framework logo as particles");
