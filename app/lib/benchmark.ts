@@ -157,118 +157,100 @@ if (i < surfaceEnd) {
 `.trim();
 
 const TARGET_FRAME_MS = 10.0;
-const WARMUP_FRAMES = 8;
-const BENCH_FRAMES = 30;
+const WARMUP_FRAMES = 3;
+const BENCH_FRAMES = 12;
 const CANDIDATES = [10000, 15000, 20000, 25000, 30000, 40000, 50000];
 const FALLBACK_COUNT = 20000;
 
 export function benchmarkParticleCount(): Promise<number> {
   return new Promise((resolve) => {
-    try {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+    requestAnimationFrame(() => {
+      try {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
 
-      const canvas = document.createElement("canvas");
-      canvas.style.cssText =
-        "position:fixed;top:0;left:0;opacity:0;pointer-events:none;z-index:-1";
-      document.body.appendChild(canvas);
+        const canvas = document.createElement("canvas");
+        canvas.style.cssText =
+          "position:fixed;top:0;left:0;opacity:0;pointer-events:none;z-index:-1";
+        document.body.appendChild(canvas);
 
-      const renderer = new THREE.WebGLRenderer({
-        canvas,
-        antialias: false,
-        alpha: false,
-      });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(width, height);
+        const renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: false,
+          alpha: false,
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(width, height);
 
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(
-        DEFAULT_SETTINGS.cameraFov,
-        width / height,
-        0.1,
-        2000,
-      );
-      camera.position.set(0, 30, 80);
-      camera.lookAt(0, 0, 0);
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+          DEFAULT_SETTINGS.cameraFov,
+          width / height,
+          0.1,
+          2000,
+        );
+        camera.position.set(0, 30, 80);
+        camera.lookAt(0, 0, 0);
 
-      const composer = new EffectComposer(renderer);
-      composer.addPass(new RenderPass(scene, camera));
-      composer.addPass(
-        new UnrealBloomPass(
-          new THREE.Vector2(width, height),
-          DEFAULT_SETTINGS.bloomStrength,
-          0.4,
-          DEFAULT_SETTINGS.bloomThreshold,
-        ),
-      );
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        composer.addPass(
+          new UnrealBloomPass(
+            new THREE.Vector2(width, height),
+            DEFAULT_SETTINGS.bloomStrength,
+            0.4,
+            DEFAULT_SETTINGS.bloomThreshold,
+          ),
+        );
 
-      const fn = compile(BENCH_CODE);
-      const controlMgr = new ControlManager();
-      const gl = renderer.getContext();
-      const particles = new ParticleSystem();
+        const fn = compile(BENCH_CODE);
+        const controlMgr = new ControlManager();
+        const gl = renderer.getContext();
+        const particles = new ParticleSystem();
 
-      let bestCount = CANDIDATES[0];
-      let candidateIdx = 0;
+        let bestCount = CANDIDATES[0];
 
-      function cleanup() {
+        for (const count of CANDIDATES) {
+          particles.init(scene, count, DEFAULT_SETTINGS.pointSize);
+          particles.setIntroProgress(1.5);
+
+          for (let f = 0; f < WARMUP_FRAMES; f++) {
+            const time = performance.now() / 1000;
+            particles.update(fn, null, 0, time, controlMgr, THREE);
+            composer.render();
+            gl.finish();
+          }
+
+          const times: number[] = [];
+          for (let f = 0; f < BENCH_FRAMES; f++) {
+            const time = performance.now() / 1000;
+            const t0 = performance.now();
+            particles.update(fn, null, 0, time, controlMgr, THREE);
+            composer.render();
+            gl.finish();
+            times.push(performance.now() - t0);
+          }
+
+          times.sort((a, b) => a - b);
+          const p90 = times[Math.floor(times.length * 0.9)];
+
+          if (p90 <= TARGET_FRAME_MS) {
+            bestCount = count;
+          } else {
+            break;
+          }
+        }
+
         particles.dispose(scene);
         composer.dispose();
         renderer.dispose();
         canvas.remove();
+
+        resolve(bestCount);
+      } catch (e) {
+        console.warn("Benchmark failed, using fallback:", e);
+        resolve(FALLBACK_COUNT);
       }
-
-      function testNext() {
-        if (candidateIdx >= CANDIDATES.length) {
-          cleanup();
-          resolve(bestCount);
-          return;
-        }
-
-        const count = CANDIDATES[candidateIdx];
-        particles.init(scene, count, DEFAULT_SETTINGS.pointSize);
-        particles.setIntroProgress(1.5);
-
-        let frameIdx = 0;
-        const times: number[] = [];
-
-        function frame() {
-          const time = performance.now() / 1000;
-
-          const t0 = performance.now();
-          particles.update(fn, null, 0, time, controlMgr, THREE);
-          composer.render();
-          gl.finish();
-          const elapsed = performance.now() - t0;
-
-          if (frameIdx >= WARMUP_FRAMES) {
-            times.push(elapsed);
-          }
-          frameIdx++;
-
-          if (frameIdx < WARMUP_FRAMES + BENCH_FRAMES) {
-            requestAnimationFrame(frame);
-          } else {
-            times.sort((a, b) => a - b);
-            const p90 = times[Math.floor(times.length * 0.9)];
-
-            if (p90 <= TARGET_FRAME_MS) {
-              bestCount = count;
-              candidateIdx++;
-              testNext();
-            } else {
-              cleanup();
-              resolve(bestCount);
-            }
-          }
-        }
-
-        requestAnimationFrame(frame);
-      }
-
-      testNext();
-    } catch (e) {
-      console.warn("Benchmark failed, using fallback:", e);
-      resolve(FALLBACK_COUNT);
-    }
+    });
   });
 }
