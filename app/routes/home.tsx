@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useRef, useCallback, useEffect } from "react";
+import { Suspense, lazy, useState, useRef, useCallback, useEffect, useMemo } from "react";
 import type { Route } from "./+types/home";
 import { presets } from "~/lib/presets";
 import { compile } from "~/lib/executor";
@@ -298,6 +298,29 @@ export default function Home() {
 
   const editingStop = getNearestStop(morphValue, presets.length - 1);
 
+  const glowStyle = useMemo(() => {
+    const intensity = settings.glowIntensity;
+    if (intensity <= 0) return { display: "none" as const };
+    const idxA = Math.floor(morphValue);
+    const idxB = Math.min(idxA + 1, presets.length - 1);
+    const t = morphValue - idxA;
+    const fallback: [number, number, number] = [0.3, 0.3, 0.3];
+    const a = presets[idxA]?.glowColor ?? fallback;
+    const b = presets[idxB]?.glowColor ?? fallback;
+    const r = Math.round((a[0] + (b[0] - a[0]) * t) * 255);
+    const g = Math.round((a[1] + (b[1] - a[1]) * t) * 255);
+    const bl = Math.round((a[2] + (b[2] - a[2]) * t) * 255);
+    const inner = intensity;
+    const mid = intensity * 0.3;
+    return {
+      position: "fixed" as const,
+      inset: 0,
+      pointerEvents: "none" as const,
+      zIndex: 0,
+      background: `radial-gradient(ellipse at 50% 50%, rgba(${r},${g},${bl},${inner}) 0%, rgba(${r},${g},${bl},${mid}) 40%, transparent 70%)`,
+    };
+  }, [morphValue, settings.glowIntensity]);
+
   if (modelsLoading) {
     return (
       <div className="visualizer-root">
@@ -321,6 +344,8 @@ export default function Home() {
           onFpsUpdate={setFps}
         />
       </Suspense>
+
+      <div style={glowStyle} />
 
       {uiVisible && <div className={`dot-grid ${fadeClass}`} />}
 

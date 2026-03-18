@@ -65,10 +65,10 @@ const FRAGMENT_SHADER = /* glsl */ `
     float d = length(gl_PointCoord - vec2(0.5));
     if (d > 0.5) discard;
 
-    float sharpness = mix(6.0, 2.0, vCoc);
+    float sharpness = mix(10.0, 2.0, vCoc);
     float glow = exp(-d * sharpness);
-    float core = smoothstep(0.5, 0.1 + vCoc * 0.3, d);
-    float alpha = (glow * 0.6 + core * 0.4) * vAlpha * vIntro;
+    float core = smoothstep(0.5, 0.2 + vCoc * 0.3, d);
+    float alpha = (glow * 0.3 + core * 0.7) * vAlpha * vIntro;
     alpha *= mix(1.0, 0.35, vCoc);
 
     vec3 col = vColor * (0.8 + core * 0.4) * (1.0 + vPulse * 9.0);

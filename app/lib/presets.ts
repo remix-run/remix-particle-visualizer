@@ -3,6 +3,7 @@ import type { Preset } from "./types";
 const racecar: Preset = {
   name: "Racecar",
   modelUrl: "/models/racecar.pts",
+  glowColor: [0.0, 0.35, 0.15],
   code: `
 addControl("_separation", "Particle Distance", 0, 1, 0);
 const scale = addControl("scale", "Scale", 5, 150, 80);
@@ -43,6 +44,7 @@ const racetrack: Preset = {
   name: "Racetrack",
   cameraPosition: [-0.80, -18.60, 81.40],
   cameraTarget: [0, -4.20, -30],
+  glowColor: [0.15, 0.25, 0.08],
   code: `
 const fogMode = addControl("_fogMode", "Fog: Color / Scene", 0, 1, 1);
 addControl("_separation", "Particle Distance", 0, 1, 0);
@@ -203,6 +205,7 @@ if (i === 0) {
 
 const galaxy: Preset = {
   name: "Spiral Galaxy",
+  glowColor: [0.55, 0.35, 0.12],
   code: `
 addControl("_separation", "Particle Distance", 0, 1, 1);
 const arms = addControl("arms", "Spiral Arms", 2, 8, 8);
@@ -246,6 +249,7 @@ if (i === 0) {
 
 const tesseract: Preset = {
   name: "4D Tesseract",
+  glowColor: [0.35, 0.2, 0.55],
   code: `
 addControl("_separation", "Particle Distance", 0, 1, 0.2);
 const speedXW = addControl("sxw", "Rotation XW", 0.1, 2.0, 0.5);
@@ -316,6 +320,7 @@ if (i === 0) {
 const remixLogo: Preset = {
   name: "Remix Logo",
   modelUrl: "/models/remix-logo.pts",
+  glowColor: [0.5, 0.5, 0.6],
   code: `
 addControl("_separation", "Particle Distance", 0, 1, 0);
 const scale = addControl("scale", "Scale", 5, 80, 26);

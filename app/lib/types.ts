@@ -26,6 +26,7 @@ export interface Preset {
   modelUrl?: string;
   cameraPosition?: [number, number, number];
   cameraTarget?: [number, number, number];
+  glowColor?: [number, number, number];
 }
 
 export interface SystemSettings {
@@ -37,18 +38,20 @@ export interface SystemSettings {
   dofAmount: number;
   dofFocus: number;
   cameraFov: number;
+  glowIntensity: number;
   showFps: boolean;
 }
 
 export const DEFAULT_SETTINGS: SystemSettings = {
   particleCount: 20000,
-  pointSize: 0.4,
+  pointSize: 0.6,
   backgroundColor: "#000000",
-  bloomStrength: 1.5,
+  bloomStrength: 0.6,
   bloomThreshold: 0,
   dofAmount: 0,
   dofFocus: 80,
   cameraFov: 60,
+  glowIntensity: 0.40,
   showFps: true,
 };
 

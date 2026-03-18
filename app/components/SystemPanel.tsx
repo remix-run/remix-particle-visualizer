@@ -151,6 +151,23 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
           </div>
 
           <div className="control-row">
+            <label className="control-label">Ambient Glow</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={0}
+                max={0.5}
+                step={0.01}
+                value={settings.glowIntensity}
+                onChange={(e) => update({ glowIntensity: parseFloat(e.target.value) })}
+                className="control-slider"
+                style={sliderFillStyle(settings.glowIntensity, 0, 0.5)}
+              />
+              <span className="control-value">{settings.glowIntensity.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="control-row">
             <label className="control-label">Depth of Field</label>
             <div className="control-slider-row">
               <input
