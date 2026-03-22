@@ -1,14 +1,11 @@
 import { Suspense, lazy, useState, useRef, useCallback, useEffect, useMemo } from "react";
 import type { Route } from "./+types/home";
 import { presets } from "~/lib/presets";
-import { compile } from "~/lib/executor";
-import { benchmarkParticleCount } from "~/lib/benchmark";
-import { validate } from "~/lib/validator";
 import { ControlManager } from "~/lib/controls";
-import { createMorphState, getActiveFunctions, getNearestStop } from "~/lib/morph";
+import { createMorphState, getNearestStop } from "~/lib/morph";
 import { loadModelPoints } from "~/lib/model-loader";
 import type { ModelData } from "~/lib/model-loader";
-import type { ParticleFn, SystemSettings, ControlDef, InfoState } from "~/lib/types";
+import type { SystemSettings, ControlDef, InfoState } from "~/lib/types";
 import { DEFAULT_SETTINGS } from "~/lib/types";
 import MorphSlider from "~/components/MorphSlider";
 import ControlPanel from "~/components/ControlPanel";
@@ -17,7 +14,6 @@ import HUD from "~/components/HUD";
 import LoaderRunner from "~/components/LoaderRunner";
 
 const ParticleCanvas = lazy(() => import("~/components/ParticleCanvas.client"));
-const CodeEditor = lazy(() => import("~/components/CodeEditor.client"));
 
 function presetSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -38,13 +34,10 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-
 export default function Home() {
   const [settings, setSettings] = useState<SystemSettings>(DEFAULT_SETTINGS);
   const [fps, setFps] = useState(0);
   const [uiVisible, setUiVisible] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
   const [vizControls, setVizControls] = useState<ControlDef[]>([]);
   const [hudInfo, setHudInfo] = useState<InfoState>({ title: "", description: "" });
   const [morphValue, setMorphValue] = useState(initialPresetIndex);
@@ -53,8 +46,6 @@ export default function Home() {
 
   const controlMgrRef = useRef(new ControlManager());
   const morphStateRef = useRef(createMorphState());
-  const compiledPresetsRef = useRef<ParticleFn[]>([]);
-  const presetCodesRef = useRef<string[]>(presets.map((p) => p.code));
   const modelDataRef = useRef<(ModelData | undefined)[]>(presets.map(() => undefined));
 
   const animRef = useRef<{ target: number; raf: number } | null>(null);
@@ -78,25 +69,7 @@ export default function Home() {
         console.error("Failed to load model(s):", err);
       }
 
-      setLoadingStatus("Calibrating performance…");
-      try {
-        const optimalCount = await benchmarkParticleCount();
-        if (cancelled) return;
-        console.log(`Benchmark: optimal particle count = ${optimalCount.toLocaleString()}`);
-        setSettings((prev) => ({ ...prev, particleCount: optimalCount }));
-      } catch (err) {
-        console.warn("Benchmark failed, keeping default:", err);
-      }
-
-      const compiled: ParticleFn[] = [];
-      for (let i = 0; i < presets.length; i++) {
-        try {
-          compiled.push(compile(presets[i].code, modelDataRef.current[i]));
-        } catch {
-          compiled.push((() => {}) as unknown as ParticleFn);
-        }
-      }
-      compiledPresetsRef.current = compiled;
+      controlMgrRef.current.loadPreset(presets[initialPresetIndex()]);
       setModelsLoading(false);
     }
 
@@ -125,15 +98,6 @@ export default function Home() {
     }, 100);
     return () => clearInterval(interval);
   }, []);
-
-  const getActiveFn = useCallback(() => {
-    const compiled = compiledPresetsRef.current;
-    if (compiled.length === 0) {
-      const noop = (() => {}) as unknown as ParticleFn;
-      return { fnA: noop, fnB: null, blend: 0 };
-    }
-    return getActiveFunctions(compiled, morphValue);
-  }, [morphValue]);
 
   const cancelAnim = useCallback(() => {
     if (animRef.current) {
@@ -253,37 +217,6 @@ export default function Home() {
 
   handlePresetClickRef.current = handlePresetClick;
 
-  const handleEdit = useCallback(() => {
-    cancelAnim();
-    const stop = getNearestStop(morphValue, presets.length - 1);
-    setMorphValue(stop);
-    morphStateRef.current.value = stop;
-    setEditing(true);
-    setEditError(null);
-  }, [morphValue, cancelAnim]);
-
-  const handleDoneEditing = useCallback(() => {
-    setEditing(false);
-    setEditError(null);
-  }, []);
-
-  const handleCodeChange = useCallback((code: string) => {
-    const stop = getNearestStop(morphStateRef.current.value, presets.length - 1);
-    const result = validate(code);
-    if (!result.valid) {
-      setEditError(result.error || "Validation failed");
-      return;
-    }
-    try {
-      const fn = compile(code, modelDataRef.current[stop]);
-      compiledPresetsRef.current[stop] = fn;
-      presetCodesRef.current[stop] = code;
-      setEditError(null);
-    } catch (err) {
-      setEditError(`Compile error: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }, []);
-
   const handleControlChange = useCallback((id: string, value: number) => {
     controlMgrRef.current.setControlValue(id, value);
   }, []);
@@ -295,8 +228,6 @@ export default function Home() {
   }, []);
 
   const fadeClass = introDone ? "" : "ui-fade-in";
-
-  const editingStop = getNearestStop(morphValue, presets.length - 1);
 
   const glowStyle = useMemo(() => {
     const intensity = settings.glowIntensity;
@@ -340,7 +271,7 @@ export default function Home() {
           controlMgr={controlMgrRef.current}
           presets={presets}
           morphValue={morphValue}
-          getActiveFn={getActiveFn}
+          modelData={modelDataRef.current}
           onFpsUpdate={setFps}
         />
       </Suspense>
@@ -358,7 +289,6 @@ export default function Home() {
           fps={fps}
           uiVisible={uiVisible}
           onToggleUi={() => setUiVisible((v) => !v)}
-          onEdit={handleEdit}
         />
       </div>
 
@@ -378,21 +308,8 @@ export default function Home() {
             value={morphValue}
             onValueChange={handleMorphChange}
             onPresetClick={handlePresetClick}
-            disabled={editing}
           />
         </div>
-      )}
-
-      {uiVisible && editing && (
-        <Suspense fallback={<div className="editor-loading">Loading editor...</div>}>
-          <CodeEditor
-            code={presetCodesRef.current[editingStop]}
-            presetName={presets[editingStop].name}
-            error={editError}
-            onCodeChange={handleCodeChange}
-            onDone={handleDoneEditing}
-          />
-        </Suspense>
       )}
     </div>
   );

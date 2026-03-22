@@ -46,6 +46,15 @@ if (typeof (globalThis as any).createImageBitmap === "undefined") {
     width: 1, height: 1, close() {},
   });
 }
+if (typeof (globalThis as any).ProgressEvent === "undefined") {
+  (globalThis as any).ProgressEvent = class ProgressEvent {
+    type: string; lengthComputable: boolean; loaded: number; total: number;
+    constructor(type: string, opts: any = {}) {
+      this.type = type; this.lengthComputable = !!opts.lengthComputable;
+      this.loaded = opts.loaded ?? 0; this.total = opts.total ?? 0;
+    }
+  };
+}
 /* ------------------------------------------------------- */
 
 import * as fs from "node:fs";
@@ -53,55 +62,34 @@ import * as path from "node:path";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshSurfaceSampler } from "three/examples/jsm/math/MeshSurfaceSampler.js";
+import { mergeGeometries as threemerge } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { NodeIO } from "@gltf-transform/core";
+import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
+import { dedup, prune } from "@gltf-transform/functions";
+import draco3d from "draco3dgltf";
 
 const SOURCE_DIR = "source-models";
 const OUTPUT_DIR = "public/models";
 const MAX_POINTS = 100_000;
 const HEADER_BYTES = 36;
 
-function mergeGeometries(geometries: THREE.BufferGeometry[]): THREE.BufferGeometry {
-  let totalVerts = 0;
-  let totalIndices = 0;
+async function loadGLB(filePath: string): Promise<THREE.Group> {
+  const io = new NodeIO()
+    .registerExtensions(ALL_EXTENSIONS)
+    .registerDependencies({
+      "draco3d.decoder": await draco3d.createDecoderModule(),
+      "draco3d.encoder": await draco3d.createEncoderModule(),
+    });
 
-  for (const geo of geometries) {
-    totalVerts += geo.getAttribute("position").count;
-    totalIndices += geo.index ? geo.index.count : geo.getAttribute("position").count;
+  const doc = await io.read(filePath);
+  for (const ext of doc.getRoot().listExtensionsUsed()) {
+    ext.dispose();
   }
+  await doc.transform(dedup(), prune());
+  const glb = await io.writeBinary(doc);
 
-  const mergedPositions = new Float32Array(totalVerts * 3);
-  const mergedIndices = new Uint32Array(totalIndices);
-  let vertOffset = 0;
-  let idxOffset = 0;
-
-  for (const geo of geometries) {
-    const pos = geo.getAttribute("position");
-    for (let i = 0; i < pos.count * 3; i++) {
-      mergedPositions[vertOffset * 3 + i] = (pos.array as Float32Array)[i];
-    }
-    if (geo.index) {
-      for (let i = 0; i < geo.index.count; i++) {
-        mergedIndices[idxOffset + i] = geo.index.array[i] + vertOffset;
-      }
-      idxOffset += geo.index.count;
-    } else {
-      for (let i = 0; i < pos.count; i++) {
-        mergedIndices[idxOffset + i] = vertOffset + i;
-      }
-      idxOffset += pos.count;
-    }
-    vertOffset += pos.count;
-  }
-
-  const merged = new THREE.BufferGeometry();
-  merged.setAttribute("position", new THREE.BufferAttribute(mergedPositions, 3));
-  merged.setIndex(new THREE.BufferAttribute(mergedIndices, 1));
-  return merged;
-}
-
-function loadGLB(filePath: string): Promise<THREE.Group> {
   return new Promise((resolve, reject) => {
-    const data = fs.readFileSync(filePath);
-    const buf = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+    const buf = glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength);
     const loader = new GLTFLoader();
     loader.parse(buf, "", (gltf) => resolve(gltf.scene), reject);
   });
@@ -202,22 +190,32 @@ function poissonFilter(
 }
 
 function sampleSurface(scene: THREE.Group, count: number) {
+  scene.updateMatrixWorld(true);
+
   const meshes: THREE.Mesh[] = [];
   scene.traverse((child) => {
     if ((child as THREE.Mesh).isMesh) meshes.push(child as THREE.Mesh);
   });
   if (meshes.length === 0) throw new Error("No meshes found in model");
+  console.log(`(${meshes.length} meshes) `);
 
   let targetMesh: THREE.Mesh;
   if (meshes.length === 1) {
-    targetMesh = meshes[0];
+    const geo = meshes[0].geometry.clone();
+    geo.applyMatrix4(meshes[0].matrixWorld);
+    targetMesh = new THREE.Mesh(geo);
   } else {
     const geos = meshes.map((m) => {
       const geo = m.geometry.clone();
       geo.applyMatrix4(m.matrixWorld);
-      return geo;
+      const posOnly = new THREE.BufferGeometry();
+      posOnly.setAttribute("position", geo.getAttribute("position"));
+      if (geo.index) posOnly.setIndex(geo.index);
+      return posOnly;
     });
-    targetMesh = new THREE.Mesh(mergeGeometries(geos));
+    const merged = threemerge(geos);
+    if (!merged) throw new Error("Failed to merge geometries");
+    targetMesh = new THREE.Mesh(merged);
     geos.forEach((g) => g.dispose());
   }
 
@@ -248,6 +246,27 @@ function sampleSurface(scene: THREE.Group, count: number) {
   }
 
   const { positions, colors, count: accepted } = poissonFilter(poolPos, poolCol, poolSize, count);
+
+  const bmin = [Infinity, Infinity, Infinity];
+  const bmax = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < accepted; i++) {
+    for (let c = 0; c < 3; c++) {
+      const v = positions[i * 3 + c];
+      if (v < bmin[c]) bmin[c] = v;
+      if (v > bmax[c]) bmax[c] = v;
+    }
+  }
+  const cx = (bmin[0] + bmax[0]) / 2;
+  const cy = (bmin[1] + bmax[1]) / 2;
+  const cz = (bmin[2] + bmax[2]) / 2;
+  const extent = Math.max(bmax[0] - bmin[0], bmax[1] - bmin[1], bmax[2] - bmin[2]);
+  const normScale = extent > 0 ? 2.0 / extent : 1;
+  for (let i = 0; i < accepted; i++) {
+    positions[i * 3]     = (positions[i * 3]     - cx) * normScale;
+    positions[i * 3 + 1] = (positions[i * 3 + 1] - cy) * normScale;
+    positions[i * 3 + 2] = (positions[i * 3 + 2] - cz) * normScale;
+  }
+
   return { positions, colors, accepted };
 }
 

@@ -1,5 +1,3 @@
-import type * as THREE from "three";
-
 export interface ControlDef {
   id: string;
   label: string;
@@ -14,19 +12,25 @@ export interface InfoState {
   description: string;
 }
 
-export interface AnnotationDef {
+export interface PresetControlDef {
   id: string;
-  position: THREE.Vector3;
   label: string;
+  min: number;
+  max: number;
+  initial: number;
 }
 
 export interface Preset {
   name: string;
-  code: string;
   modelUrl?: string;
+  modelSlot?: number;
   cameraPosition?: [number, number, number];
   cameraTarget?: [number, number, number];
   glowColor?: [number, number, number];
+  controls: PresetControlDef[];
+  cameraControls?: PresetControlDef[];
+  separation: number;
+  info: InfoState;
 }
 
 export interface SystemSettings {
@@ -43,10 +47,10 @@ export interface SystemSettings {
 }
 
 export const DEFAULT_SETTINGS: SystemSettings = {
-  particleCount: 20000,
-  pointSize: 0.6,
+  particleCount: 301000,
+  pointSize: 0.1,
   backgroundColor: "#000000",
-  bloomStrength: 0.6,
+  bloomStrength: 0.7,
   bloomThreshold: 0,
   dofAmount: 0,
   dofFocus: 80,
@@ -54,20 +58,3 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   glowIntensity: 0.40,
   showFps: true,
 };
-
-export type ParticleFn = (
-  i: number,
-  count: number,
-  target: THREE.Vector3,
-  color: THREE.Color,
-  time: number,
-  THREE: typeof import("three"),
-  addControl: (id: string, label: string, min: number, max: number, initial: number) => number,
-  setInfo: (title: string, description: string) => void,
-  annotate: (id: string, position: THREE.Vector3, label: string) => void,
-) => void;
-
-export interface ValidationResult {
-  valid: boolean;
-  error?: string;
-}

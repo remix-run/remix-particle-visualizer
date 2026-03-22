@@ -8,10 +8,9 @@ interface Props {
   fps: number;
   uiVisible: boolean;
   onToggleUi: () => void;
-  onEdit: () => void;
 }
 
-export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible, onToggleUi, onEdit }: Props) {
+export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible, onToggleUi }: Props) {
   const [open, setOpen] = useState(false);
 
   const update = (partial: Partial<SystemSettings>) =>
@@ -22,17 +21,6 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
       <div className="system-top-row">
         {settings.showFps && (
           <div className="fps-counter">{fps} FPS</div>
-        )}
-        {uiVisible && (
-          <button
-            className="system-toggle"
-            onClick={onEdit}
-            title="Edit preset code"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-            </svg>
-          </button>
         )}
         {uiVisible && (
           <button
@@ -78,12 +66,12 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
               <input
                 type="range"
                 min={1000}
-                max={100000}
+                max={500000}
                 step={1000}
                 value={settings.particleCount}
                 onChange={(e) => update({ particleCount: parseInt(e.target.value) })}
                 className="control-slider"
-                style={sliderFillStyle(settings.particleCount, 1000, 100000)}
+                style={sliderFillStyle(settings.particleCount, 1000, 500000)}
               />
               <span className="control-value">{(settings.particleCount / 1000).toFixed(0)}k</span>
             </div>
