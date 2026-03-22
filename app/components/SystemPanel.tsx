@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import type { SystemSettings } from "~/lib/types";
 import { sliderFillStyle } from "~/lib/ui-utils";
+import { COPY_PROMPT } from "~/lib/copy-prompt";
 
 interface Props {
   settings: SystemSettings;
@@ -12,6 +13,17 @@ interface Props {
 
 export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible, onToggleUi }: Props) {
   const [open, setOpen] = useState(false);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(COPY_PROMPT).then(() => {
+      setCopied(true);
+      clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopied(false), 2000);
+    });
+  }, []);
 
   const update = (partial: Partial<SystemSettings>) =>
     onSettingsChange({ ...settings, ...partial });
@@ -31,6 +43,18 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+        )}
+        {uiVisible && (
+          <button
+            className="system-toggle"
+            onClick={() => setCopyOpen(true)}
+            title="Copy AI Prompt"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
             </svg>
           </button>
         )}
@@ -214,6 +238,25 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
             >
               {settings.showFps ? "ON" : "OFF"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {copyOpen && (
+        <div className="copy-backdrop" onClick={() => setCopyOpen(false)} onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
+          <div className="copy-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="copy-modal-header">
+              <span className="copy-modal-title">AI Prompt</span>
+              <div className="copy-modal-actions">
+                <button className="copy-modal-btn" onClick={handleCopy}>
+                  {copied ? "Copied!" : "Copy to Clipboard"}
+                </button>
+                <button className="copy-modal-btn" onClick={() => setCopyOpen(false)}>
+                  Close
+                </button>
+              </div>
+            </div>
+            <pre className="copy-code-block"><code>{COPY_PROMPT}</code></pre>
           </div>
         </div>
       )}

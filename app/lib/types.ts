@@ -47,10 +47,10 @@ export interface SystemSettings {
 }
 
 export const DEFAULT_SETTINGS: SystemSettings = {
-  particleCount: 301000,
-  pointSize: 0.1,
+  particleCount: 160000,
+  pointSize: 0.2,
   backgroundColor: "#000000",
-  bloomStrength: 0.7,
+  bloomStrength: 1.0,
   bloomThreshold: 0,
   dofAmount: 0,
   dofFocus: 80,
