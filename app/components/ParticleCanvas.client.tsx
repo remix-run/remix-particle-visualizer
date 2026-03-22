@@ -125,12 +125,14 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
 
     let camAnimating = false;
     let mouseNormX = 0;
+    let mouseNormY = 0;
     let smoothMouseOffsetX = 0;
     const MOUSE_RANGE = 9;
     const MOUSE_LERP = 0.04;
 
     const onMouseMove = (e: MouseEvent) => {
       mouseNormX = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseNormY = (e.clientY / window.innerHeight) * 2 - 1;
     };
     window.addEventListener("mousemove", onMouseMove);
 
@@ -142,6 +144,9 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
 
       engine.updateSettings(settingsRef.current);
       particles.setPointSize(settingsRef.current.pointSize);
+      particles.setHdrIntensity(settingsRef.current.hdrIntensity);
+      particles.setMousePos(mouseNormX, -mouseNormY);
+      particles.setCursorRepulsion(settingsRef.current.cursorRepulsion);
       particles.setDof(settingsRef.current.dofAmount, settingsRef.current.dofFocus);
       particles.setIntroProgress(Math.min(time / 3.5, 1.5));
       particles.setTime(time);

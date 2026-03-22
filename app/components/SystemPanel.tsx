@@ -163,6 +163,40 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
           </div>
 
           <div className="control-row">
+            <label className="control-label">HDR Intensity</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={0.5}
+                max={5}
+                step={0.1}
+                value={settings.hdrIntensity}
+                onChange={(e) => update({ hdrIntensity: parseFloat(e.target.value) })}
+                className="control-slider"
+                style={sliderFillStyle(settings.hdrIntensity, 0.5, 5)}
+              />
+              <span className="control-value">{settings.hdrIntensity.toFixed(1)}</span>
+            </div>
+          </div>
+
+          <div className="control-row">
+            <label className="control-label">Cursor Repulsion</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={0.1}
+                value={settings.cursorRepulsion}
+                onChange={(e) => update({ cursorRepulsion: parseFloat(e.target.value) })}
+                className="control-slider"
+                style={sliderFillStyle(settings.cursorRepulsion, 0, 10)}
+              />
+              <span className="control-value">{settings.cursorRepulsion.toFixed(1)}</span>
+            </div>
+          </div>
+
+          <div className="control-row">
             <label className="control-label">Ambient Glow</label>
             <div className="control-slider-row">
               <input

@@ -26,6 +26,8 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uPresetB;
   uniform float uBlend;
   uniform float uSeparation;
+  uniform vec2 uMousePos;
+  uniform float uCursorRepulsion;
   uniform float uCtrlA[8];
   uniform float uCtrlB[8];
   uniform float uModelCount0;
@@ -409,6 +411,18 @@ const VERTEX_SHADER = /* glsl */ `
     finalPos.y += cos(h * 1.731) * uSeparation;
     finalPos.z += sin(h * 2.419) * uSeparation;
 
+    if (uCursorRepulsion > 0.0) {
+      vec4 clipPos = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);
+      vec2 ndc = clipPos.xy / clipPos.w;
+      vec2 diff = ndc - uMousePos;
+      float d2 = dot(diff, diff);
+      float radius = 0.15;
+      float falloff = exp(-d2 / (radius * radius));
+      vec2 push = normalize(diff + vec2(0.0001)) * falloff * uCursorRepulsion * 8.0;
+      vec4 invMV = inverse(modelViewMatrix) * vec4(push, 0.0, 0.0);
+      finalPos += invMV.xyz;
+    }
+
     vColor = finalCol;
 
     float delay = aRandom * 0.7;
@@ -451,6 +465,7 @@ const FRAGMENT_SHADER = /* glsl */ `
   uniform float uFogEnabled;
   uniform float uFogNear;
   uniform float uFogFar;
+  uniform float uHdrIntensity;
 
   void main() {
     float d = length(gl_PointCoord - vec2(0.5));
@@ -469,6 +484,8 @@ const FRAGMENT_SHADER = /* glsl */ `
       col *= 1.0 - fogFactor;
       alpha *= 1.0 - fogFactor;
     }
+
+    col *= uHdrIntensity;
 
     gl_FragColor = vec4(col, alpha);
   }
@@ -510,6 +527,7 @@ export class ParticleSystem {
         uFogEnabled: { value: 0.0 },
         uFogNear: { value: 10.0 },
         uFogFar: { value: 180.0 },
+        uHdrIntensity: { value: 1.0 },
         uDofAmount: { value: 0.0 },
         uDofFocus: { value: 80.0 },
         uTime: { value: 0.0 },
@@ -518,6 +536,8 @@ export class ParticleSystem {
         uPresetB: { value: 0 },
         uBlend: { value: 0.0 },
         uSeparation: { value: 0.0 },
+        uMousePos: { value: [0, 0] },
+        uCursorRepulsion: { value: 0 },
         uCtrlA: { value: [0, 0, 0, 0, 0, 0, 0, 0] },
         uCtrlB: { value: [0, 0, 0, 0, 0, 0, 0, 0] },
         uModelCount0: { value: 0 },
@@ -551,6 +571,10 @@ export class ParticleSystem {
     }
   }
 
+  setHdrIntensity(value: number) {
+    if (this.material) this.material.uniforms.uHdrIntensity.value = value;
+  }
+
   setDof(amount: number, focus: number) {
     if (this.material) {
       this.material.uniforms.uDofAmount.value = amount;
@@ -571,6 +595,18 @@ export class ParticleSystem {
 
   setSeparation(value: number) {
     if (this.material) this.material.uniforms.uSeparation.value = value;
+  }
+
+  setMousePos(x: number, y: number) {
+    if (this.material) {
+      const v = this.material.uniforms.uMousePos.value as number[];
+      v[0] = x;
+      v[1] = y;
+    }
+  }
+
+  setCursorRepulsion(value: number) {
+    if (this.material) this.material.uniforms.uCursorRepulsion.value = value;
   }
 
   setControls(ctrlA: number[], ctrlB: number[]) {

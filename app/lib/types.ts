@@ -43,6 +43,8 @@ export interface SystemSettings {
   dofFocus: number;
   cameraFov: number;
   glowIntensity: number;
+  hdrIntensity: number;
+  cursorRepulsion: number;
   showFps: boolean;
 }
 
@@ -56,5 +58,7 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   dofFocus: 80,
   cameraFov: 60,
   glowIntensity: 0.40,
+  hdrIntensity: 1.0,
+  cursorRepulsion: 0.2,
   showFps: true,
 };

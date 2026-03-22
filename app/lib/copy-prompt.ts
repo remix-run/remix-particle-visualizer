@@ -39,11 +39,11 @@ Key uniforms:
 3. Helper: sampleModel(slot, fi) — reads a point position from a DataTexture by computing UV from a flat index
 4. Five preset functions, each computing (pos, col) from (fi, cnt, time, c0..c7)
 5. computePreset() dispatcher that calls the correct preset by ID
-6. main(): computes positions for both presetA and presetB, blends them with smoothstep, applies separation offset, intro rain animation, point size with DOF, and distance-based alpha fade
+6. main(): computes positions for both presetA and presetB, blends them with smoothstep, applies separation offset, cursor repulsion displacement (screen-space distance to uMousePos with Gaussian falloff, projected back to world space via inverse modelView), intro rain animation, point size with DOF, and distance-based alpha fade
 
 ### Fragment Shader
 
-Renders soft glowing point sprites: circular mask with discard for d>0.5, exponential glow + smoothstep core, DOF blur (controlled by vCoc varying), optional fog fading by view distance. Uses additive blending with no depth write.
+Renders soft glowing point sprites: circular mask with discard for d>0.5, exponential glow + smoothstep core, DOF blur (controlled by vCoc varying), optional fog fading by view distance. A uHdrIntensity uniform (default 1.0) multiplies the final color — values above 1.0 push fragments past [0,1] so the bloom pass flares dramatically, creating a simulated HDR "pop" effect. Uses additive blending with no depth write.
 
 ### Point Size Formula
 
@@ -104,7 +104,7 @@ Loaded positions are uploaded to a 512×256 RGBA Float32 DataTexture. The vertex
 ## UI Components
 
 ### SystemPanel (top-right)
-Row of icon buttons: settings gear, copy-prompt clipboard, eye toggle. Settings dropdown has sliders for: Particles (1k-500k), Point Size (0.1-5), Background Color, Bloom (0-3), Bloom Threshold (0-1), Ambient Glow (0-0.5), DOF Amount (0-5), Focus Distance (5-300), Camera FOV (30-120), Show FPS toggle.
+Row of icon buttons: settings gear, copy-prompt clipboard, eye toggle. Settings dropdown has sliders for: Particles (1k-500k), Point Size (0.1-5), Background Color, Bloom (0-3), Bloom Threshold (0-1), HDR Intensity (0.5-5), Cursor Repulsion (0-10), Ambient Glow (0-0.5), DOF Amount (0-5), Focus Distance (5-300), Camera FOV (30-120), Show FPS toggle.
 
 ### ControlPanel (below SystemPanel)
 Dynamically renders sliders for the active preset's controls. Binary 0/1 controls render as segmented toggles. Each preset defines its own control schema with id, label, min, max, initial.
@@ -131,7 +131,7 @@ Dark, terminal-inspired aesthetic:
 
 ## Default Settings
 
-particleCount: 160000, pointSize: 0.2, backgroundColor: "#000000", bloomStrength: 1.0, bloomThreshold: 0, dofAmount: 0, dofFocus: 80, cameraFov: 60, glowIntensity: 0.40, showFps: true
+particleCount: 160000, pointSize: 0.2, backgroundColor: "#000000", bloomStrength: 1.0, bloomThreshold: 0, dofAmount: 0, dofFocus: 80, cameraFov: 60, glowIntensity: 0.40, hdrIntensity: 1.0, cursorRepulsion: 0, showFps: true
 
 ## Key Technical Details
 
