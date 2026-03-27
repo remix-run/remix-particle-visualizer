@@ -28,6 +28,7 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uSeparation;
   uniform vec2 uMousePos;
   uniform float uCursorRepulsion;
+  uniform float uMorphEase;
   uniform float uCtrlA[8];
   uniform float uCtrlB[8];
   uniform float uModelCount0;
@@ -371,9 +372,9 @@ const VERTEX_SHADER = /* glsl */ `
     float c4, float c5, float c6, float c7,
     out vec3 pos, out vec3 col)
   {
-    if      (id == 0) presetRemixLogo (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    if      (id == 0) presetRacetrack (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
     else if (id == 1) presetRacecar   (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else if (id == 2) presetRacetrack (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 2) presetRemixLogo (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
     else if (id == 3) presetGalaxy    (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
     else              presetTesseract (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
   }
@@ -398,7 +399,8 @@ const VERTEX_SHADER = /* glsl */ `
         uCtrlB[0], uCtrlB[1], uCtrlB[2], uCtrlB[3],
         uCtrlB[4], uCtrlB[5], uCtrlB[6], uCtrlB[7],
         posB, colB);
-      float t = uBlend * uBlend * (3.0 - 2.0 * uBlend);
+      float tk = pow(uBlend, uMorphEase);
+      float t = tk / (tk + pow(1.0 - uBlend, uMorphEase));
       finalPos = mix(posA, posB, t);
       finalCol = mix(colA, colB, t);
     } else {
@@ -538,6 +540,7 @@ export class ParticleSystem {
         uSeparation: { value: 0.0 },
         uMousePos: { value: [0, 0] },
         uCursorRepulsion: { value: 0 },
+        uMorphEase: { value: 2.0 },
         uCtrlA: { value: [0, 0, 0, 0, 0, 0, 0, 0] },
         uCtrlB: { value: [0, 0, 0, 0, 0, 0, 0, 0] },
         uModelCount0: { value: 0 },
@@ -607,6 +610,10 @@ export class ParticleSystem {
 
   setCursorRepulsion(value: number) {
     if (this.material) this.material.uniforms.uCursorRepulsion.value = value;
+  }
+
+  setMorphEase(value: number) {
+    if (this.material) this.material.uniforms.uMorphEase.value = value;
   }
 
   setControls(ctrlA: number[], ctrlB: number[]) {

@@ -7,7 +7,7 @@ const remixLogo: Preset = {
   glowColor: [0.5, 0.5, 0.6],
   separation: 0,
   controls: [
-    { id: "scale", label: "Scale", min: 5, max: 80, initial: 40 },
+    { id: "scale", label: "Scale", min: 5, max: 80, initial: 60 },
     { id: "rotX", label: "Rotate X", min: -180, max: 180, initial: 0 },
     { id: "rotY", label: "Rotate Y", min: -180, max: 180, initial: 0 },
     { id: "rotZ", label: "Rotate Z", min: -180, max: 180, initial: 0 },
@@ -79,4 +79,4 @@ const tesseract: Preset = {
   info: { title: "4D Tesseract", description: "Hypercube projected from 4D space" },
 };
 
-export const presets: Preset[] = [remixLogo, racecar, racetrack, galaxy, tesseract];
+export const presets: Preset[] = [racetrack, racecar, remixLogo, galaxy, tesseract];

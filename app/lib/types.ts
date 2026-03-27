@@ -45,6 +45,7 @@ export interface SystemSettings {
   glowIntensity: number;
   hdrIntensity: number;
   cursorRepulsion: number;
+  morphEase: number;
   showFps: boolean;
 }
 
@@ -60,5 +61,6 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   glowIntensity: 0.40,
   hdrIntensity: 1.0,
   cursorRepulsion: 0.2,
+  morphEase: 2.3,
   showFps: true,
 };

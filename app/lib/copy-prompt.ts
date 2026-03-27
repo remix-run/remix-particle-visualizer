@@ -56,7 +56,7 @@ gl_PointSize = clamp(baseSize + coc * 12.0, 1.0, 128.0)
 ## Five Presets
 
 ### 0: Remix Logo (model-based)
-Reads positions from model texture slot 0. Controls: Scale (5-80, default 40), Rotate X/Y/Z (-180..180, default 0). Applies Euler rotation (XYZ order). Color: grayscale with subtle sine-wave luminance animation.
+Reads positions from model texture slot 0. Controls: Scale (5-80, default 60), Rotate X/Y/Z (-180..180, default 0). Applies Euler rotation (XYZ order). Color: grayscale with subtle sine-wave luminance animation.
 
 ### 1: Racecar (model-based)
 Reads positions from model texture slot 1. Controls: Scale (5-150, default 42), Spin Speed (0-1, default 0.2), Shimmer (0-2, default 0.6). Spins the model around Y axis. Color: green-tinted based on front-facing direction with shimmer pulse.
@@ -74,7 +74,7 @@ Controls: Rotation XW (0.1-2, default 0.5), Rotation YZ (0.1-2, default 0.3), Pr
 
 ## Morph / Blend System
 
-A morph slider (vertical, left side) maps to a continuous float 0..N-1 where N is the preset count. The vertex shader receives uPresetA, uPresetB, and uBlend. When blend > 0.001, both presets are evaluated and positions/colors are mixed with smoothstep: t = blend^2 * (3 - 2*blend). Scrolling (wheel/touch/arrow keys) adjusts the morph value continuously. Clicking a preset name animates to it with exponential ease (speed=4.0, tick each rAF).
+A morph slider (vertical, left side) maps to a continuous float 0..N-1 where N is the preset count. The vertex shader receives uPresetA, uPresetB, and uBlend. When blend > 0.001, both presets are evaluated and positions/colors are mixed with a power-sigmoid ease: t = blend^k / (blend^k + (1-blend)^k), where k = uMorphEase (default 2.0). At k=1 the blend is linear, k=2 gives a smooth S-curve similar to smoothstep, and higher values produce a sharper snap. Scrolling (wheel/touch/arrow keys) adjusts the morph value continuously. Clicking a preset name animates to it with exponential ease (speed=4.0, tick each rAF).
 
 ## Engine / Post-Processing
 
@@ -104,7 +104,7 @@ Loaded positions are uploaded to a 512×256 RGBA Float32 DataTexture. The vertex
 ## UI Components
 
 ### SystemPanel (top-right)
-Row of icon buttons: settings gear, copy-prompt clipboard, eye toggle. Settings dropdown has sliders for: Particles (1k-500k), Point Size (0.1-5), Background Color, Bloom (0-3), Bloom Threshold (0-1), HDR Intensity (0.5-5), Cursor Repulsion (0-10), Ambient Glow (0-0.5), DOF Amount (0-5), Focus Distance (5-300), Camera FOV (30-120), Show FPS toggle.
+Row of icon buttons: settings gear, copy-prompt clipboard, eye toggle. Settings dropdown has sliders for: Particles (1k-500k), Point Size (0.1-5), Background Color, Bloom (0-3), Bloom Threshold (0-1), HDR Intensity (0.5-5), Cursor Repulsion (0-10), Morph Ease (0.5-5), Ambient Glow (0-0.5), DOF Amount (0-5), Focus Distance (5-300), Camera FOV (30-120), Show FPS toggle.
 
 ### ControlPanel (below SystemPanel)
 Dynamically renders sliders for the active preset's controls. Binary 0/1 controls render as segmented toggles. Each preset defines its own control schema with id, label, min, max, initial.
@@ -131,7 +131,7 @@ Dark, terminal-inspired aesthetic:
 
 ## Default Settings
 
-particleCount: 160000, pointSize: 0.2, backgroundColor: "#000000", bloomStrength: 1.0, bloomThreshold: 0, dofAmount: 0, dofFocus: 80, cameraFov: 60, glowIntensity: 0.40, hdrIntensity: 1.0, cursorRepulsion: 0, showFps: true
+particleCount: 160000, pointSize: 0.2, backgroundColor: "#000000", bloomStrength: 1.0, bloomThreshold: 0, dofAmount: 0, dofFocus: 80, cameraFov: 60, glowIntensity: 0.40, hdrIntensity: 1.0, cursorRepulsion: 0, morphEase: 2.0, showFps: true
 
 ## Key Technical Details
 
