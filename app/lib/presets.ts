@@ -19,10 +19,10 @@ const racecar: Preset = {
   name: "Racecar",
   modelUrl: "/models/racecar.pts",
   modelSlot: 1,
-  glowColor: [0.0, 0.35, 0.15],
+  glowColor: [0.3, 0.35, 0.55],
   separation: 0,
   controls: [
-    { id: "scale", label: "Scale", min: 5, max: 150, initial: 42 },
+    { id: "scale", label: "Scale", min: 5, max: 150, initial: 48 },
     { id: "spin", label: "Spin Speed", min: 0, max: 1, initial: 0.2 },
     { id: "shimmer", label: "Shimmer", min: 0, max: 2, initial: 0.6 },
   ],
@@ -53,17 +53,18 @@ const racetrack: Preset = {
   info: { title: "Racetrack", description: "A mountain circuit streaming past at speed" },
 };
 
-const galaxy: Preset = {
-  name: "Spiral Galaxy",
-  glowColor: [0.55, 0.35, 0.12],
-  separation: 1,
+const runner: Preset = {
+  name: "Model Kit Runner",
+  modelUrl: "/models/model-kit-runner.pts",
+  modelSlot: 2,
+  glowColor: [0.3, 0.35, 0.55],
+  separation: 0,
   controls: [
-    { id: "arms", label: "Spiral Arms", min: 2, max: 8, initial: 8 },
-    { id: "tightness", label: "Tightness", min: 0.2, max: 2, initial: 1.8 },
-    { id: "rotSpeed", label: "Rotation Speed", min: 0.05, max: 1, initial: 0.2 },
-    { id: "diskH", label: "Disk Height", min: 0.5, max: 8, initial: 6 },
+    { id: "scale", label: "Scale", min: 5, max: 150, initial: 42 },
+    { id: "spin", label: "Spin Speed", min: 0, max: 1, initial: 0.20 },
+    { id: "shimmer", label: "Shimmer", min: 0, max: 2, initial: 0.5 },
   ],
-  info: { title: "Spiral Galaxy", description: "8-arm galaxy spinning through the void" },
+  info: { title: "Model Kit Runner", description: "Runner figure rendered as a particle cloud" },
 };
 
 const tesseract: Preset = {
@@ -79,4 +80,4 @@ const tesseract: Preset = {
   info: { title: "4D Tesseract", description: "Hypercube projected from 4D space" },
 };
 
-export const presets: Preset[] = [racetrack, racecar, remixLogo, galaxy, tesseract];
+export const presets: Preset[] = [racetrack, racecar, runner, remixLogo, tesseract];

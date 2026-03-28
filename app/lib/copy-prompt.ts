@@ -29,8 +29,8 @@ Key uniforms:
 - uSeparation (float): explosion separation per preset
 - uIntroProgress (float): 0..1.5 intro animation progress
 - uDofAmount, uDofFocus: depth-of-field parameters
-- uModelTex0, uModelTex1 (sampler2D): 512x256 RGBA float textures holding model point clouds
-- uModelCount0, uModelCount1: number of points in each model texture
+- uModelTex0, uModelTex1, uModelTex2 (sampler2D): 512x256 RGBA float textures holding model point clouds
+- uModelCount0, uModelCount1, uModelCount2: number of points in each model texture
 
 ### Vertex Shader Structure
 
@@ -66,8 +66,8 @@ Streaming mountain road scene with perspective rush. Controls: Speed (0.1-2, def
 
 Particles are divided into 5 groups by index: road surface (30%), left curb (5%), right curb (5%), left hillside (30%), right hillside (30%). Each group scrolls along z using fract(grHash(fi, phi) - time * speed * 0.12) with quadratic depth mapping z = zNear + (zFar-zNear) * along^2 for perspective compression. Hills use layered sine-wave terrain with HSL green coloring. Curbs alternate red-white stripes. Fog mode toggles between per-particle color fade and scene-level fog.
 
-### 3: Spiral Galaxy (procedural)
-Controls: Spiral Arms (2-8, default 8), Tightness (0.2-2, default 1.8), Rotation Speed (0.05-1, default 0.2), Disk Height (0.5-8, default 6). Uses logarithmic spiral with differential rotation (inner spins faster). Scatter increases with distance from center. Color: warm core (orange) fading to blue in outer arms via HSL interpolation.
+### 3: Model Kit Runner (model-based)
+Reads positions from model texture slot 2. Controls: Scale (5-150, default 42), Spin Speed (0-1, default 0.15), Shimmer (0-2, default 0.5). Spins the model around Y axis. Color: blue-tinted HSL based on vertical position with shimmer pulse.
 
 ### 4: 4D Tesseract (procedural)
 Controls: Rotation XW (0.1-2, default 0.5), Rotation YZ (0.1-2, default 0.3), Projection Dist (1.5-5, default 1.5), Edge Spread (0.5-3, default 1.09). Constructs 32 edges of a 4D hypercube, distributes particles along edges, applies 4D rotations in XW and YZ planes, then perspective-projects from 4D to 3D. Color: edge-indexed hue with brightness modulated by projection scale.

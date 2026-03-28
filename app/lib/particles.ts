@@ -33,8 +33,10 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uCtrlB[8];
   uniform float uModelCount0;
   uniform float uModelCount1;
+  uniform float uModelCount2;
   uniform sampler2D uModelTex0;
   uniform sampler2D uModelTex1;
+  uniform sampler2D uModelTex2;
 
   /* ── helpers ───────────────────────────────────────────── */
 
@@ -60,13 +62,14 @@ const VERTEX_SHADER = /* glsl */ `
   }
 
   vec3 sampleModel(int slot, float fi) {
-    float cnt = (slot == 0) ? uModelCount0 : uModelCount1;
+    float cnt = (slot == 0) ? uModelCount0 : (slot == 1) ? uModelCount1 : uModelCount2;
     float idx = (cnt > 0.0) ? mod(fi, cnt) : 0.0;
     float u = (mod(idx, ${MODEL_TEX_W}.0) + 0.5) / ${MODEL_TEX_W}.0;
     float v = (floor(idx / ${MODEL_TEX_W}.0) + 0.5) / ${MODEL_TEX_H}.0;
     vec2 uv = vec2(u, v);
     if (slot == 0) return texture2D(uModelTex0, uv).xyz;
-    else           return texture2D(uModelTex1, uv).xyz;
+    else if (slot == 1) return texture2D(uModelTex1, uv).xyz;
+    else           return texture2D(uModelTex2, uv).xyz;
   }
 
   /* ── preset 0: Remix Logo ─────────────────────────────── */
@@ -129,16 +132,10 @@ const VERTEX_SHADER = /* glsl */ `
 
     pos = vec3(mx * cosA - mz * sinA, my, mx * sinA + mz * cosA);
 
-    float front = mp.z * 0.6 + mp.y * 0.4;
-    float norm = front * 4.0 + 0.5;
-    float bright = clamp(norm, 0.0, 1.0);
-    float pulse = 1.0 + shimmer * 0.08 * sin(time * 3.0 + fi * 0.03);
-    float lum = (0.12 + bright * 0.55) * pulse;
-    col = vec3(
-      min(0.0, 1.0),
-      min(0.50 * lum + 0.08, 1.0),
-      min(0.24 * lum, 1.0)
-    );
+    float height = mp.y * 0.5 + 0.5;
+    float pulse = 1.0 + shimmer * 0.1 * sin(time * 2.5 + fi * 0.02);
+    float lum = (0.3 + 0.5 * height) * pulse;
+    col = hsl2rgb(0.55 + 0.1 * height, 0.6, lum);
   }
 
   /* ── preset 2: Racetrack ──────────────────────────────── */
@@ -252,39 +249,32 @@ const VERTEX_SHADER = /* glsl */ `
     }
   }
 
-  /* ── preset 3: Spiral Galaxy ──────────────────────────── */
+  /* ── preset 3: Model Kit Runner ──────────────────────── */
 
-  void presetGalaxy(float fi, int cnt, float time,
+  void presetRunner(float fi, int cnt, float time,
     float c0, float c1, float c2, float c3,
     float c4, float c5, float c6, float c7,
     out vec3 pos, out vec3 col)
   {
-    float armsF = floor(c0 + 0.5);
-    float tightness = c1;
-    float rotSpeed = c2;
-    float diskH = c3;
+    float scale = c0;
+    float spin = c1;
+    float shimmer = c2;
 
-    float arm = mod(fi, armsF);
-    float posInArm = floor(fi / armsF) / floor(float(cnt) / armsF);
+    float angle = time * spin;
+    float cosA = cos(angle), sinA = sin(angle);
 
-    float baseAngle = (arm / armsF) * 6.28318530;
-    float r = 2.0 + posInArm * 45.0;
-    float spiral = baseAngle + log(1.0 + r * 0.1) * tightness * 4.0;
-    float angle = spiral + time * rotSpeed / (1.0 + r * 0.02);
+    vec3 mp = sampleModel(2, fi);
+    float mx = mp.x * scale;
+    float my = mp.y * scale;
+    float mz = mp.z * scale;
 
-    float scatter = (1.0 - exp(-posInArm * 3.0)) * 3.0;
-    float js = fi * 1.3717;
-    float jx = sin(js) * scatter;
-    float jz = cos(js * 1.73) * scatter;
-    float jy = sin(js * 2.37) * diskH * (1.0 - posInArm * 0.3) * exp(-posInArm * 1.5);
+    pos = vec3(mx * cosA - mz * sinA, my, mx * sinA + mz * cosA);
 
-    pos = vec3(cos(angle) * r + jx, jy, sin(angle) * r + jz);
-
-    float coreGlow = exp(-r * 0.08);
-    float h = 0.08 * coreGlow + 0.6 * (1.0 - coreGlow);
-    float s = 0.5 + 0.4 * (1.0 - coreGlow);
-    float l = 0.3 + 0.5 * coreGlow + 0.1 * sin(posInArm * 20.0 + arm);
-    col = hsl2rgb(h, s, min(l, 1.0));
+    float t = fi / float(cnt);
+    float height = mp.y * 0.5 + 0.5;
+    float pulse = 1.0 + shimmer * 0.1 * sin(time * 2.5 + fi * 0.02);
+    float lum = (0.3 + 0.5 * height) * pulse;
+    col = hsl2rgb(0.55 + 0.1 * height, 0.6, lum);
   }
 
   /* ── preset 4: 4D Tesseract ───────────────────────────── */
@@ -374,8 +364,8 @@ const VERTEX_SHADER = /* glsl */ `
   {
     if      (id == 0) presetRacetrack (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
     else if (id == 1) presetRacecar   (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else if (id == 2) presetRemixLogo (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else if (id == 3) presetGalaxy    (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 2) presetRunner    (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 3) presetRemixLogo (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
     else              presetTesseract (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
   }
 
@@ -545,8 +535,10 @@ export class ParticleSystem {
         uCtrlB: { value: [0, 0, 0, 0, 0, 0, 0, 0] },
         uModelCount0: { value: 0 },
         uModelCount1: { value: 0 },
+        uModelCount2: { value: 0 },
         uModelTex0: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
         uModelTex1: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
+        uModelTex2: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -631,9 +623,12 @@ export class ParticleSystem {
     if (slot === 0) {
       this.material.uniforms.uModelTex0.value = texture;
       this.material.uniforms.uModelCount0.value = pointCount;
-    } else {
+    } else if (slot === 1) {
       this.material.uniforms.uModelTex1.value = texture;
       this.material.uniforms.uModelCount1.value = pointCount;
+    } else {
+      this.material.uniforms.uModelTex2.value = texture;
+      this.material.uniforms.uModelCount2.value = pointCount;
     }
   }
 
