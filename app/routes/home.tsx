@@ -125,6 +125,8 @@ export default function Home() {
     };
 
     const onWheel = (e: WheelEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(".control-panel, .system-panel, .system-dropdown")) return;
       e.preventDefault();
       applyDelta(e.deltaY > 0 ? 0.02 : -0.02);
     };
@@ -229,18 +231,38 @@ export default function Home() {
 
   const fadeClass = introDone ? "" : "ui-fade-in";
 
+  const BRAND_GLOW: [number, number, number][] = [
+    [45, 172, 249], [74, 222, 128], [250, 204, 21], [244, 114, 182], [239, 68, 68],
+  ];
+  const RACECAR_GLOW: [number, number, number] = [0.3, 0.35, 0.55];
+
+  const glowRef = useRef<HTMLDivElement>(null);
+  const glowRafRef = useRef<number>(0);
+
   const glowStyle = useMemo(() => {
     const intensity = settings.glowIntensity;
     if (intensity <= 0) return { display: "none" as const };
-    const idxA = Math.floor(morphValue);
-    const idxB = Math.min(idxA + 1, presets.length - 1);
-    const t = morphValue - idxA;
-    const fallback: [number, number, number] = [0.3, 0.3, 0.3];
-    const a = presets[idxA]?.glowColor ?? fallback;
-    const b = presets[idxB]?.glowColor ?? fallback;
-    const r = Math.round((a[0] + (b[0] - a[0]) * t) * 255);
-    const g = Math.round((a[1] + (b[1] - a[1]) * t) * 255);
-    const bl = Math.round((a[2] + (b[2] - a[2]) * t) * 255);
+
+    let r: number, g: number, bl: number;
+
+    if (settings.colorMode === 1) {
+      r = Math.round(RACECAR_GLOW[0] * 255);
+      g = Math.round(RACECAR_GLOW[1] * 255);
+      bl = Math.round(RACECAR_GLOW[2] * 255);
+    } else if (settings.colorMode === 2) {
+      r = BRAND_GLOW[0][0]; g = BRAND_GLOW[0][1]; bl = BRAND_GLOW[0][2];
+    } else {
+      const idxA = Math.floor(morphValue);
+      const idxB = Math.min(idxA + 1, presets.length - 1);
+      const t = morphValue - idxA;
+      const fallback: [number, number, number] = [0.3, 0.3, 0.3];
+      const a = presets[idxA]?.glowColor ?? fallback;
+      const b = presets[idxB]?.glowColor ?? fallback;
+      r = Math.round((a[0] + (b[0] - a[0]) * t) * 255);
+      g = Math.round((a[1] + (b[1] - a[1]) * t) * 255);
+      bl = Math.round((a[2] + (b[2] - a[2]) * t) * 255);
+    }
+
     const inner = intensity;
     const mid = intensity * 0.3;
     return {
@@ -250,7 +272,34 @@ export default function Home() {
       zIndex: 0,
       background: `radial-gradient(ellipse at 50% 50%, rgba(${r},${g},${bl},${inner}) 0%, rgba(${r},${g},${bl},${mid}) 40%, transparent 70%)`,
     };
-  }, [morphValue, settings.glowIntensity]);
+  }, [morphValue, settings.glowIntensity, settings.colorMode]);
+
+  useEffect(() => {
+    if (settings.colorMode !== 2) {
+      cancelAnimationFrame(glowRafRef.current);
+      return;
+    }
+    const intensity = settings.glowIntensity;
+    const colors = BRAND_GLOW;
+    const tick = () => {
+      const el = glowRef.current;
+      if (!el) { glowRafRef.current = requestAnimationFrame(tick); return; }
+      const phase = ((performance.now() / 1000) * 0.15) % 1;
+      const idx = phase * 5;
+      const i0 = Math.floor(idx) % 5;
+      const i1 = (i0 + 1) % 5;
+      const t = idx - Math.floor(idx);
+      const r = Math.round(colors[i0][0] + (colors[i1][0] - colors[i0][0]) * t);
+      const g = Math.round(colors[i0][1] + (colors[i1][1] - colors[i0][1]) * t);
+      const b = Math.round(colors[i0][2] + (colors[i1][2] - colors[i0][2]) * t);
+      const inner = intensity;
+      const mid = intensity * 0.3;
+      el.style.background = `radial-gradient(ellipse at 50% 50%, rgba(${r},${g},${b},${inner}) 0%, rgba(${r},${g},${b},${mid}) 40%, transparent 70%)`;
+      glowRafRef.current = requestAnimationFrame(tick);
+    };
+    glowRafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(glowRafRef.current);
+  }, [settings.colorMode, settings.glowIntensity]);
 
   if (modelsLoading) {
     return (
@@ -276,7 +325,7 @@ export default function Home() {
         />
       </Suspense>
 
-      <div style={glowStyle} />
+      <div ref={glowRef} style={glowStyle} />
 
       {uiVisible && <div className={`dot-grid ${fadeClass}`} />}
 

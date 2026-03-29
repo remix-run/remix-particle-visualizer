@@ -148,6 +148,7 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       particles.setMousePos(mouseNormX, -mouseNormY);
       particles.setCursorRepulsion(settingsRef.current.cursorRepulsion);
       particles.setMorphEase(settingsRef.current.morphEase);
+      particles.setColorMode(settingsRef.current.colorMode);
       particles.setDof(settingsRef.current.dofAmount, settingsRef.current.dofFocus);
       particles.setIntroProgress(Math.min(time / 3.5, 1.5));
       particles.setTime(time);

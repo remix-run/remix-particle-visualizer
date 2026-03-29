@@ -29,6 +29,7 @@ const VERTEX_SHADER = /* glsl */ `
   uniform vec2 uMousePos;
   uniform float uCursorRepulsion;
   uniform float uMorphEase;
+  uniform float uColorMode;
   uniform float uCtrlA[8];
   uniform float uCtrlB[8];
   uniform float uModelCount0;
@@ -61,6 +62,31 @@ const VERTEX_SHADER = /* glsl */ `
     return fract(fract(hi * fract(128.0 * k)) + fract(lo * k));
   }
 
+  float hash11(float p) {
+    p = fract(p * 0.1031);
+    p *= p + 33.33;
+    p *= p + p;
+    return fract(p);
+  }
+
+  vec3 brandGradient(float phase) {
+    vec3 c0 = vec3(0.18, 0.67, 0.98);
+    vec3 c1 = vec3(0.29, 0.87, 0.50);
+    vec3 c2 = vec3(0.98, 0.80, 0.08);
+    vec3 c3 = vec3(0.96, 0.45, 0.71);
+    vec3 c4 = vec3(0.94, 0.27, 0.27);
+
+    float idx = fract(phase) * 5.0;
+    float t = fract(idx);
+    float seg = floor(idx);
+
+    if      (seg < 1.0) return mix(c0, c1, t);
+    else if (seg < 2.0) return mix(c1, c2, t);
+    else if (seg < 3.0) return mix(c2, c3, t);
+    else if (seg < 4.0) return mix(c3, c4, t);
+    else                return mix(c4, c0, t);
+  }
+
   vec3 sampleModel(int slot, float fi) {
     float cnt = (slot == 0) ? uModelCount0 : (slot == 1) ? uModelCount1 : uModelCount2;
     float idx = (cnt > 0.0) ? mod(fi, cnt) : 0.0;
@@ -81,7 +107,7 @@ const VERTEX_SHADER = /* glsl */ `
   {
     float scale = c0;
     float rX = c1 * 0.01745329;
-    float rY = c2 * 0.01745329;
+    float rY = c2 * 0.01745329 - time * c4;
     float rZ = c3 * 0.01745329;
 
     vec3 mp = sampleModel(0, fi);
@@ -106,9 +132,10 @@ const VERTEX_SHADER = /* glsl */ `
 
     pos = vec3(px, py, pz);
 
-    float t = fi / float(cnt);
-    float l = 0.5 + 0.3 * sin(t * 6.28 + time * 0.5);
-    col = vec3(l);
+    float height = mp.y * 0.5 + 0.5;
+    float pulse = 1.0 + 0.1 * sin(time * 2.5 + fi * 0.02);
+    float lum = (0.3 + 0.5 * height) * pulse;
+    col = hsl2rgb(0.55 + 0.1 * height, 0.6, lum);
   }
 
   /* ── preset 1: Racecar ────────────────────────────────── */
@@ -150,6 +177,11 @@ const VERTEX_SHADER = /* glsl */ `
     float curveAmp = c2;
     float hillH = c3;
     float fogMode = c4;
+    float curveSway = c6;
+
+    if (curveSway > 0.0) {
+      curveAmp *= sin(time * curveSway * speed);
+    }
 
     float zNear = 72.0;
     float zFar  = -100.0;
@@ -158,48 +190,56 @@ const VERTEX_SHADER = /* glsl */ `
     float hillWidth = 50.0;
     float fcnt = float(cnt);
 
-    int surfaceEnd   = int(floor(fcnt * 0.30));
-    int leftCurbEnd  = surfaceEnd + int(floor(fcnt * 0.05));
-    int rightCurbEnd = leftCurbEnd + int(floor(fcnt * 0.05));
-    int leftHillEnd  = rightCurbEnd + int(floor(fcnt * 0.30));
+    float starFrac = c5;
+    float groundFrac = 1.0 - starFrac;
+
+    int surfaceEnd   = int(floor(fcnt * 0.10 * groundFrac));
+    int leftCurbEnd  = surfaceEnd + int(floor(fcnt * 0.05 * groundFrac));
+    int rightCurbEnd = leftCurbEnd + int(floor(fcnt * 0.05 * groundFrac));
+    int leftHillEnd  = rightCurbEnd + int(floor(fcnt * 0.40 * groundFrac));
+    int rightHillEnd = leftHillEnd + int(floor(fcnt * 0.40 * groundFrac));
     int idx = int(fi);
 
     if (idx < surfaceEnd) {
       float along = fract(grHash(fi, 0.6180339887) - time * speed * 0.12);
-      float across = grHash(fi, 0.7071067812);
+      float across = hash11(fi + 0.5);
       float z = zNear + (zFar - zNear) * along * along;
       float cx = sin(along * PI * 3.0) * curveAmp
                + sin(along * PI * 5.5 + 2.0) * curveAmp * 0.3;
       float perspN = 1.0 - along * 0.5;
       float lane = (across - 0.5) * trackW * perspN;
-      pos = vec3(cx + lane + sin(fi * 7.37) * 0.2, trackY, z);
-      float tarmac = 0.06 + 0.03 * sin(fi * 3.77 + along * 20.0);
+      float jX = (hash11(fi * 1.731) - 0.5) * 1.4;
+      float jY = (hash11(fi * 3.917) - 0.5) * 0.35;
+      pos = vec3(cx + lane + jX, trackY + jY, z);
+      float tarmac = 0.06 + 0.03 * hash11(fi * 2.473);
       col = vec3(tarmac);
       if (fogMode < 0.5) col *= (1.0 - along);
 
     } else if (idx < leftCurbEnd) {
       float bi = float(idx - surfaceEnd);
-      float bt = fract(grHash(bi, 0.6180339887) - time * speed * 0.12);
+      float bHash = grHash(bi, 0.6180339887);
+      float bt = fract(bHash - time * speed * 0.12);
       float bz = zNear + (zFar - zNear) * bt * bt;
       float bcx = sin(bt * PI * 3.0) * curveAmp
                 + sin(bt * PI * 5.5 + 2.0) * curveAmp * 0.3;
       float bN = 1.0 - bt * 0.5;
       float strip = mod(bi, 8.0) / 8.0 * 1.5;
       pos = vec3(bcx - trackW * 0.5 * bN - strip, trackY, bz);
-      col = (mod(floor(bt * 35.0), 2.0) < 0.5)
+      col = (mod(floor(bHash * 35.0), 2.0) < 0.5)
         ? hsl2rgb(0.0, 0.85, 0.45) : vec3(0.85);
       if (fogMode < 0.5) col *= (1.0 - bt);
 
     } else if (idx < rightCurbEnd) {
       float bi = float(idx - leftCurbEnd);
-      float bt = fract(grHash(bi, 0.6180339887) - time * speed * 0.12);
+      float bHash = grHash(bi, 0.6180339887);
+      float bt = fract(bHash - time * speed * 0.12);
       float bz = zNear + (zFar - zNear) * bt * bt;
       float bcx = sin(bt * PI * 3.0) * curveAmp
                 + sin(bt * PI * 5.5 + 2.0) * curveAmp * 0.3;
       float bN = 1.0 - bt * 0.5;
       float strip = mod(bi, 8.0) / 8.0 * 1.5;
       pos = vec3(bcx + trackW * 0.5 * bN + strip, trackY, bz);
-      col = (mod(floor(bt * 35.0), 2.0) < 0.5)
+      col = (mod(floor(bHash * 35.0), 2.0) < 0.5)
         ? hsl2rgb(0.0, 0.85, 0.45) : vec3(0.85);
       if (fogMode < 0.5) col *= (1.0 - bt);
 
@@ -210,8 +250,10 @@ const VERTEX_SHADER = /* glsl */ `
       float hcx = sin(ht * PI * 3.0) * curveAmp
                 + sin(ht * PI * 5.5 + 2.0) * curveAmp * 0.3;
       float hN = 1.0 - ht * 0.5;
-      float lat = grHash(hi, 0.7071067812);
+      float lat = hash11(hi + 0.5);
       float xOff = (trackW * 0.5 + 1.5 + lat * hillWidth) * hN;
+      float jX = (hash11(hi * 2.317) - 0.5) * 1.2;
+      float jZ = (hash11(hi * 4.193) - 0.5) * 1.0;
       float nx = lat * 3.5;
       float nz = ht * 8.0;
       float ridge = sin(nz * 1.1 + nx * 0.7) * 0.5 + 0.5;
@@ -220,20 +262,22 @@ const VERTEX_SHADER = /* glsl */ `
       float slope = lat * 0.4 + 0.1;
       float nearCurb = 1.0 - exp(-lat * 6.0);
       float elev = (ridge * 0.5 + broad * 0.35 + fine * 0.15 + slope) * hillH * nearCurb;
-      pos = vec3(hcx - xOff, trackY + elev, hz);
+      pos = vec3(hcx - xOff + jX, trackY + elev, hz + jZ);
       float eN = min(elev / hillH, 1.0);
-      col = hsl2rgb(0.30 - eN * 0.06, 0.75 - eN * 0.35, 0.08 + eN * 0.14 + 0.03 * sin(hi * 1.73));
+      col = hsl2rgb(0.30 - eN * 0.06, 0.75 - eN * 0.35, 0.08 + eN * 0.14 + 0.03 * hash11(hi * 1.73));
       if (fogMode < 0.5) col *= (1.0 - ht);
 
-    } else {
+    } else if (idx < rightHillEnd) {
       float hi = float(idx - leftHillEnd);
       float ht = fract(grHash(hi, 0.6180339887) - time * speed * 0.12);
       float hz = zNear + (zFar - zNear) * ht * ht;
       float hcx = sin(ht * PI * 3.0) * curveAmp
                 + sin(ht * PI * 5.5 + 2.0) * curveAmp * 0.3;
       float hN = 1.0 - ht * 0.5;
-      float lat = grHash(hi, 0.7071067812);
+      float lat = hash11(hi + 7.1);
       float xOff = (trackW * 0.5 + 1.5 + lat * hillWidth) * hN;
+      float jX = (hash11(hi * 2.713) - 0.5) * 1.2;
+      float jZ = (hash11(hi * 5.371) - 0.5) * 1.0;
       float nx = lat * 3.5;
       float nz = ht * 8.0;
       float ridge = sin(nz * 1.1 + nx * 0.7 + 1.5) * 0.5 + 0.5;
@@ -242,10 +286,31 @@ const VERTEX_SHADER = /* glsl */ `
       float slope = lat * 0.4 + 0.1;
       float nearCurb = 1.0 - exp(-lat * 6.0);
       float elev = (ridge * 0.5 + broad * 0.35 + fine * 0.15 + slope) * hillH * nearCurb;
-      pos = vec3(hcx + xOff, trackY + elev, hz);
+      pos = vec3(hcx + xOff + jX, trackY + elev, hz + jZ);
       float eN = min(elev / hillH, 1.0);
-      col = hsl2rgb(0.30 - eN * 0.06, 0.75 - eN * 0.35, 0.08 + eN * 0.14 + 0.03 * sin(hi * 1.73));
+      col = hsl2rgb(0.30 - eN * 0.06, 0.75 - eN * 0.35, 0.08 + eN * 0.14 + 0.03 * hash11(hi * 1.73));
       if (fogMode < 0.5) col *= (1.0 - ht);
+
+    } else {
+      float si = float(idx - rightHillEnd);
+      float st = fract(grHash(si, 0.6180339887) - time * speed * 0.12);
+      float sz = zNear + (zFar - zNear) * st * st;
+      float perspN = 1.0 - st * 0.5;
+
+      float sx = (grHash(si, 0.5381) - 0.5) * 180.0 * perspN;
+      float rawY = grHash(si, 0.3571);
+      float sy = trackY + hillH * 0.8 + rawY * 48.0;
+
+      pos = vec3(sx, sy, sz);
+
+      float brightness = pow(grHash(si, 0.4231), 2.5);
+      float twinkle = 0.9 + 0.1 * sin(time * (3.0 + grHash(si, 0.9137) * 5.0) + si * 1.73);
+      float lum = (0.15 + 0.85 * brightness) * twinkle;
+      float warmth = grHash(si, 0.2917);
+      float hue = mix(0.6, 0.12, warmth);
+      float sat = 0.1 + 0.15 * abs(warmth - 0.5);
+      col = hsl2rgb(hue, sat, lum);
+      if (fogMode < 0.5) col *= (1.0 - st * 0.3);
     }
   }
 
@@ -415,6 +480,19 @@ const VERTEX_SHADER = /* glsl */ `
       finalPos += invMV.xyz;
     }
 
+    if (uColorMode > 1.5) {
+      float spatialPhase = dot(finalPos, vec3(0.018, 0.014, 0.012));
+      float phase = spatialPhase + uTime * 0.25;
+      vec3 gradCol = brandGradient(phase);
+      float origBright = dot(finalCol, vec3(0.299, 0.587, 0.114));
+      finalCol = gradCol * (0.5 + origBright * 1.5);
+    } else if (uColorMode > 0.5) {
+      float height = clamp((finalPos.y + 30.0) / 60.0, 0.0, 1.0);
+      float pulse = 1.0 + 0.1 * sin(uTime * 2.5 + fi * 0.02);
+      float lum = (0.3 + 0.5 * height) * pulse;
+      finalCol = hsl2rgb(0.55 + 0.1 * height, 0.6, lum);
+    }
+
     vColor = finalCol;
 
     float delay = aRandom * 0.7;
@@ -530,6 +608,7 @@ export class ParticleSystem {
         uSeparation: { value: 0.0 },
         uMousePos: { value: [0, 0] },
         uCursorRepulsion: { value: 0 },
+        uColorMode: { value: 0.0 },
         uMorphEase: { value: 2.0 },
         uCtrlA: { value: [0, 0, 0, 0, 0, 0, 0, 0] },
         uCtrlB: { value: [0, 0, 0, 0, 0, 0, 0, 0] },
@@ -602,6 +681,10 @@ export class ParticleSystem {
 
   setCursorRepulsion(value: number) {
     if (this.material) this.material.uniforms.uCursorRepulsion.value = value;
+  }
+
+  setColorMode(value: number) {
+    if (this.material) this.material.uniforms.uColorMode.value = value;
   }
 
   setMorphEase(value: number) {

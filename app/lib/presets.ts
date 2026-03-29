@@ -4,13 +4,14 @@ const remixLogo: Preset = {
   name: "Remix Logo",
   modelUrl: "/models/remix-logo.pts",
   modelSlot: 0,
-  glowColor: [0.5, 0.5, 0.6],
+  glowColor: [0.3, 0.35, 0.55],
   separation: 0,
   controls: [
     { id: "scale", label: "Scale", min: 5, max: 80, initial: 60 },
     { id: "rotX", label: "Rotate X", min: -180, max: 180, initial: 0 },
     { id: "rotY", label: "Rotate Y", min: -180, max: 180, initial: 0 },
     { id: "rotZ", label: "Rotate Z", min: -180, max: 180, initial: 0 },
+    { id: "spin", label: "Spin Speed", min: 0, max: 1, initial: 0.23 },
   ],
   info: { title: "Remix Logo", description: "The Remix framework logo as particles" },
 };
@@ -23,7 +24,7 @@ const racecar: Preset = {
   separation: 0,
   controls: [
     { id: "scale", label: "Scale", min: 5, max: 150, initial: 48 },
-    { id: "spin", label: "Spin Speed", min: 0, max: 1, initial: 0.2 },
+    { id: "spin", label: "Spin Speed", min: 0, max: 1, initial: 0.23 },
     { id: "shimmer", label: "Shimmer", min: 0, max: 2, initial: 0.6 },
   ],
   info: { title: "Racecar", description: "Race car rendered as a particle cloud" },
@@ -36,11 +37,13 @@ const racetrack: Preset = {
   glowColor: [0.15, 0.25, 0.08],
   separation: 0,
   controls: [
-    { id: "speed", label: "Speed", min: 0.1, max: 2, initial: 0.2 },
+    { id: "speed", label: "Speed", min: 0.1, max: 10, initial: 0.3 },
     { id: "trackW", label: "Track Width", min: 5, max: 60, initial: 40 },
-    { id: "curveAmp", label: "Curve Intensity", min: 0, max: 25, initial: 10.25 },
+    { id: "curveAmp", label: "Curve Intensity", min: 0, max: 25, initial: 10 },
     { id: "hillH", label: "Hill Height", min: 5, max: 40, initial: 7.8 },
     { id: "_fogMode", label: "Fog: Color / Scene", min: 0, max: 1, initial: 1 },
+    { id: "starDensity", label: "Star Density", min: 0, max: 0.3, initial: 0.005 },
+    { id: "curveSway", label: "Curve Sway Speed", min: 0, max: 2, initial: 0.08 },
   ],
   cameraControls: [
     { id: "_camPosX", label: "Camera X", min: -80, max: 80, initial: -0.80 },
@@ -61,7 +64,7 @@ const runner: Preset = {
   separation: 0,
   controls: [
     { id: "scale", label: "Scale", min: 5, max: 150, initial: 42 },
-    { id: "spin", label: "Spin Speed", min: 0, max: 1, initial: 0.20 },
+    { id: "spin", label: "Spin Speed", min: 0, max: 1, initial: 0.23 },
     { id: "shimmer", label: "Shimmer", min: 0, max: 2, initial: 0.5 },
   ],
   info: { title: "Model Kit Runner", description: "Runner figure rendered as a particle cloud" },

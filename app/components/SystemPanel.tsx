@@ -36,7 +36,7 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
         )}
         {uiVisible && (
           <button
-            className="system-toggle"
+            className={`system-toggle ${open ? "system-toggle-active" : ""}`}
             onClick={() => setOpen(!open)}
             title="System Settings"
           >
@@ -279,6 +279,19 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
               />
               <span className="control-value">{settings.cameraFov}°</span>
             </div>
+          </div>
+
+          <div className="control-row">
+            <label className="control-label">Color Mode</label>
+            <select
+              className="color-mode-select"
+              value={settings.colorMode}
+              onChange={(e) => update({ colorMode: parseInt(e.target.value) })}
+            >
+              <option value={0}>Per-Preset</option>
+              <option value={1}>Uniform</option>
+              <option value={2}>Brand Gradient</option>
+            </select>
           </div>
 
           <div className="control-row">

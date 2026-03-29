@@ -47,6 +47,7 @@ export interface SystemSettings {
   cursorRepulsion: number;
   morphEase: number;
   showFps: boolean;
+  colorMode: number;
 }
 
 export const DEFAULT_SETTINGS: SystemSettings = {
@@ -63,4 +64,5 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   cursorRepulsion: 0.2,
   morphEase: 2.3,
   showFps: true,
+  colorMode: 0,
 };
