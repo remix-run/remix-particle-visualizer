@@ -134,8 +134,10 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
     let mouseNormX = 0;
     let mouseNormY = 0;
     let smoothMouseOffsetX = 0;
+    let smoothCarLane = 0;
     const MOUSE_RANGE = 9;
     const MOUSE_LERP = 0.04;
+    const CAR_LANE_LERP = 0.06;
 
     const onMouseMove = (e: MouseEvent) => {
       mouseNormX = (e.clientX / window.innerWidth) * 2 - 1;
@@ -154,7 +156,6 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       particles.setPointSize(settingsRef.current.pointSize);
       particles.setHdrIntensity(settingsRef.current.hdrIntensity * s);
       particles.setMousePos(mouseNormX, -mouseNormY);
-      particles.setCursorRepulsion(settingsRef.current.cursorRepulsion);
       particles.setMorphEase(settingsRef.current.morphEase);
       particles.setColorMode(settingsRef.current.colorMode);
       particles.setDof(settingsRef.current.dofAmount, settingsRef.current.dofFocus);
@@ -203,17 +204,44 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       particles.setControls(padCtrl(ctrlA), padCtrl(ctrlB));
       particles.setSeparation(separation);
 
-      const baseTrail = settingsRef.current.trailIntensity;
+      const overA = prs[fromIndex].systemOverrides;
+      const overB = prs[toIndex].systemOverrides;
+      const t = blend * blend * (3 - 2 * blend);
+      const effTrail = (1 - t) * (overA?.trailIntensity ?? settingsRef.current.trailIntensity)
+                     + t * (overB?.trailIntensity ?? settingsRef.current.trailIntensity);
+      const effRepulsion = (1 - t) * (overA?.cursorRepulsion ?? settingsRef.current.cursorRepulsion)
+                         + t * (overB?.cursorRepulsion ?? settingsRef.current.cursorRepulsion);
+
+      particles.setCursorRepulsion(effRepulsion);
+
+      const baseTrail = effTrail;
       const trailBoost = departingRacetrack ? Math.sin(racetrackDist * Math.PI) * 0.75 : 0;
       engine.afterImagePass.uniforms['damp'].value = Math.min(baseTrail + trailBoost, 0.97);
 
       const fogCtrl = controlMgrRef.current.controls.get("_fogMode");
-      const fogProximity =
-        racetrackIdx >= 0 ? Math.max(0, 1 - Math.abs(currentMorph - racetrackIdx)) : 0;
+      const driveIdx = prs.findIndex((p) => p.name === "Drive");
+      const racetrackFogDist = racetrackIdx >= 0 ? Math.abs(currentMorph - racetrackIdx) : Infinity;
+      const driveFogDist = driveIdx >= 0 ? Math.abs(currentMorph - driveIdx) : Infinity;
+      const fogProximity = Math.max(0, 1 - Math.min(racetrackFogDist, driveFogDist));
       const fogActive = fogCtrl !== undefined && fogCtrl.value > 0.5 ? 1 : 0;
       particles.setFog(fogActive * fogProximity, 10, 180);
 
-      engine.camera.position.x -= smoothMouseOffsetX;
+      const driveProximity = driveIdx >= 0 ? Math.max(0, 1 - Math.abs(currentMorph - driveIdx)) : 0;
+
+      if (driveProximity > 0) {
+        smoothCarLane += (mouseNormX - smoothCarLane) * CAR_LANE_LERP;
+      } else {
+        smoothCarLane += (0 - smoothCarLane) * CAR_LANE_LERP;
+      }
+      particles.setCarLaneOffset(smoothCarLane * driveProximity);
+
+      const carPosYCtrl = controlMgrRef.current.controls.get("_carPosY");
+      particles.setCarPosY(carPosYCtrl ? carPosYCtrl.value * driveProximity : 0);
+
+      engine.controls.enabled = driveProximity < 0.5;
+
+      const parallaxScale = 1 - driveProximity;
+      engine.camera.position.x -= smoothMouseOffsetX * parallaxScale;
 
       if (Math.abs(currentMorph - prevMorphRef.current) > 0.001) {
         prevMorphRef.current = currentMorph;
@@ -255,7 +283,7 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       }
 
       smoothMouseOffsetX += (mouseNormX * MOUSE_RANGE - smoothMouseOffsetX) * MOUSE_LERP;
-      engine.camera.position.x += smoothMouseOffsetX;
+      engine.camera.position.x += smoothMouseOffsetX * parallaxScale;
 
       const nearestPreset = prs[nearest];
       if (nearestPreset?.labels && nearestPreset.labels.length > 0) {

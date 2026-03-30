@@ -28,6 +28,8 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uSeparation;
   uniform vec2 uMousePos;
   uniform float uCursorRepulsion;
+  uniform float uCarLaneOffset;
+  uniform float uCarPosY;
   uniform float uMorphEase;
   uniform float uColorMode;
   uniform float uCtrlA[8];
@@ -410,6 +412,45 @@ const VERTEX_SHADER = /* glsl */ `
     col = hsl2rgb(h, 0.7, clamp(l, 0.2, 1.0));
   }
 
+  /* ── preset 5: Racetrack + Car ─────────────────────────── */
+
+  void presetRacetrackCar(float fi, int cnt, float time,
+    float c0, float c1, float c2, float c3,
+    float c4, float c5, float c6, float c7,
+    out vec3 pos, out vec3 col)
+  {
+    float fcnt = float(cnt);
+    int carStart = int(floor(fcnt * 0.95));
+
+    if (int(fi) >= carStart) {
+      float carScale = 7.5;
+      float trackY = -24.0;
+      float carZ = 58.0;
+      float carY = trackY + carScale * 0.35 + uCarPosY;
+
+      float along = sqrt((72.0 - carZ) / (72.0 - (-100.0)));
+      float perspN = 1.0 - along * 0.5;
+      float halfW = c1 * 0.5 * perspN;
+      float laneX = clamp(uCarLaneOffset, -1.0, 1.0) * halfW;
+
+      float carFi = float(int(fi) - carStart);
+      float spreadFi = floor(fract(carFi * 0.6180339887) * uModelCount1);
+      vec3 mp = sampleModel(1, spreadFi);
+      float mx = mp.x * carScale;
+      float my = mp.y * carScale;
+      float mz = mp.z * carScale;
+
+      pos = vec3(mx + laneX, my + carY, -mz + carZ);
+
+      float height = mp.y * 0.5 + 0.5;
+      float pulse = 1.0 + 0.1 * sin(time * 2.5 + carFi * 0.02);
+      float lum = (0.3 + 0.5 * height) * pulse;
+      col = hsl2rgb(0.55 + 0.1 * height, 0.6, lum);
+    } else {
+      presetRacetrack(fi, carStart, time, c0,c1,c2,c3,c4,c5,c6, 0.0, pos, col);
+    }
+  }
+
   /* ── dispatch ─────────────────────────────────────────── */
 
   void computePreset(int id, float fi, int cnt, float time,
@@ -417,11 +458,12 @@ const VERTEX_SHADER = /* glsl */ `
     float c4, float c5, float c6, float c7,
     out vec3 pos, out vec3 col)
   {
-    if      (id == 0) presetRacetrack (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else if (id == 1) presetRacecar   (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else if (id == 2) presetRunner    (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else if (id == 3) presetRemixLogo (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else              presetTesseract (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    if      (id == 0) presetRacetrack    (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 1) presetRacecar      (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 2) presetRunner       (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 3) presetRemixLogo    (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 4) presetRacecar      (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else              presetRacetrackCar (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
   }
 
   /* ── main ─────────────────────────────────────────────── */
@@ -598,6 +640,8 @@ export class ParticleSystem {
         uSeparation: { value: 0.0 },
         uMousePos: { value: [0, 0] },
         uCursorRepulsion: { value: 0 },
+        uCarLaneOffset: { value: 0 },
+        uCarPosY: { value: 0 },
         uColorMode: { value: 0.0 },
         uMorphEase: { value: 2.0 },
         uCtrlA: { value: [0, 0, 0, 0, 0, 0, 0, 0] },
@@ -671,6 +715,14 @@ export class ParticleSystem {
 
   setCursorRepulsion(value: number) {
     if (this.material) this.material.uniforms.uCursorRepulsion.value = value;
+  }
+
+  setCarLaneOffset(value: number) {
+    if (this.material) this.material.uniforms.uCarLaneOffset.value = value;
+  }
+
+  setCarPosY(value: number) {
+    if (this.material) this.material.uniforms.uCarPosY.value = value;
   }
 
   setColorMode(value: number) {

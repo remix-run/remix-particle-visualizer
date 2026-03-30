@@ -40,6 +40,7 @@ export interface Preset {
   labelColor?: string;
   separation: number;
   info: InfoState;
+  systemOverrides?: Partial<SystemSettings>;
 }
 
 export interface SystemSettings {

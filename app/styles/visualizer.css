@@ -646,21 +646,20 @@
 .label-connector {
   stroke: #e8edf2;
   stroke-width: 1;
-  stroke-opacity: 0.6;
-  filter: url(#line-glow);
+  stroke-opacity: 0.7;
 }
 
 .scene-label {
   position: absolute;
-  transform: translate(-50%, -100%);
+  transform: translate(-100%, -100%);
   font-family: "JetBrains Mono", monospace;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #e8edf2;
   white-space: nowrap;
-  padding: 5px 7px 4px;
+  padding: 4px 6px;
   border: 1px solid #e8edf2;
   box-shadow:
     0 0 2px rgba(140, 180, 255, 0.25),
