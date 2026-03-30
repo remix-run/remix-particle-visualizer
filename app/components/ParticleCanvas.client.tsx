@@ -4,6 +4,7 @@ import { Engine } from "~/lib/engine";
 import { ParticleSystem } from "~/lib/particles";
 import { getMorphBlend } from "~/lib/morph";
 import { createModelTexture } from "~/lib/model-texture";
+import { projectLabels, type ProjectedLabel } from "~/lib/label-projection";
 import type { SystemSettings, Preset } from "~/lib/types";
 import type { ControlManager } from "~/lib/controls";
 import type { ModelData } from "~/lib/model-loader";
@@ -61,10 +62,12 @@ interface Props {
   morphValue: number;
   modelData: (ModelData | undefined)[];
   onFpsUpdate?: (fps: number) => void;
+  labelsRef: React.MutableRefObject<ProjectedLabel[]>;
+  labelOpacityRef: React.MutableRefObject<number>;
 }
 
 const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
-  { settings, controlMgr, presets, morphValue, modelData, onFpsUpdate },
+  { settings, controlMgr, presets, morphValue, modelData, onFpsUpdate, labelsRef, labelOpacityRef },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -81,6 +84,10 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
   const controlMgrRef = useRef(controlMgr);
   const modelDataRef = useRef(modelData);
   const prevNearestRef = useRef(-1);
+  const labelsRefInternal = useRef(labelsRef);
+  const labelOpInternal = useRef(labelOpacityRef);
+  labelsRefInternal.current = labelsRef;
+  labelOpInternal.current = labelOpacityRef;
 
   settingsRef.current = settings;
   presetsRef.current = presets;
@@ -249,6 +256,28 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
 
       smoothMouseOffsetX += (mouseNormX * MOUSE_RANGE - smoothMouseOffsetX) * MOUSE_LERP;
       engine.camera.position.x += smoothMouseOffsetX;
+
+      const nearestPreset = prs[nearest];
+      if (nearestPreset?.labels && nearestPreset.labels.length > 0) {
+        const activeCtrls = blend < 0.001
+          ? controlMgrRef.current.getControlValues(nearestPreset)
+          : nearestPreset.controls.map((c) => c.initial);
+        const container = engine.renderer.domElement.parentElement!;
+        labelsRefInternal.current.current = projectLabels(
+          nearestPreset,
+          controlMgrRef.current,
+          activeCtrls,
+          time,
+          engine.camera,
+          container.clientWidth,
+          container.clientHeight,
+        );
+        const distFromNearest = Math.abs(currentMorph - nearest);
+        labelOpInternal.current.current = Math.max(0, 1 - distFromNearest * 4);
+      } else {
+        labelsRefInternal.current.current = [];
+        labelOpInternal.current.current = 0;
+      }
 
       engine.render();
 

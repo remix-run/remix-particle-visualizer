@@ -27,6 +27,11 @@ const racecar: Preset = {
     { id: "spin", label: "Spin Speed", min: 0, max: 1, initial: 0.23 },
     { id: "shimmer", label: "Shimmer", min: 0, max: 2, initial: 0.6 },
   ],
+  labels: [
+    { id: "frontend", text: "FRONTEND", anchor: [-0.06, 0.06, 0.20], offset: [-100, -60] },
+    { id: "backend", text: "BACKEND", anchor: [0.04, 0.06, -0.50], offset: [80, -55] },
+  ],
+  labelColor: "hsl(200, 60%, 65%)",
   info: { title: "Racecar", description: "Race car rendered as a particle cloud" },
 };
 

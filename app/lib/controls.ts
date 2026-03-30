@@ -18,6 +18,22 @@ export class ControlManager {
         initial: c.initial,
       });
     }
+    if (preset.labels) {
+      for (const lbl of preset.labels) {
+        const axes: [string, number][] = [["X", lbl.anchor[0]], ["Y", lbl.anchor[1]], ["Z", lbl.anchor[2]]];
+        for (const [axis, val] of axes) {
+          const id = `label_${lbl.id}_${axis}`;
+          this.controls.set(id, {
+            id,
+            label: `${lbl.text} ${axis}`,
+            min: -2,
+            max: 2,
+            value: val,
+            initial: val,
+          });
+        }
+      }
+    }
     this.info = { ...preset.info };
     this.dirty = true;
   }

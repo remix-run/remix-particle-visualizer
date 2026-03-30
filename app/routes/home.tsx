@@ -12,6 +12,8 @@ import ControlPanel from "~/components/ControlPanel";
 import SystemPanel from "~/components/SystemPanel";
 import HUD from "~/components/HUD";
 import LoaderRunner from "~/components/LoaderRunner";
+import LabelOverlay from "~/components/LabelOverlay";
+import type { ProjectedLabel } from "~/lib/label-projection";
 
 const ParticleCanvas = lazy(() => import("~/components/ParticleCanvas.client"));
 
@@ -43,10 +45,12 @@ export default function Home() {
   const [morphValue, setMorphValue] = useState(initialPresetIndex);
   const [modelsLoading, setModelsLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState("Loading models...");
+  const labelOpacityRef = useRef(0);
 
   const controlMgrRef = useRef(new ControlManager());
   const morphStateRef = useRef(createMorphState());
   const modelDataRef = useRef<(ModelData | undefined)[]>(presets.map(() => undefined));
+  const projectedLabelsRef = useRef<ProjectedLabel[]>([]);
 
   const animRef = useRef<{ target: number; raf: number } | null>(null);
   const handlePresetClickRef = useRef<(idx: number) => void>(() => {});
@@ -315,8 +319,15 @@ export default function Home() {
           morphValue={morphValue}
           modelData={modelDataRef.current}
           onFpsUpdate={setFps}
+          labelsRef={projectedLabelsRef}
+          labelOpacityRef={labelOpacityRef}
         />
       </Suspense>
+
+      <LabelOverlay
+        labelsRef={projectedLabelsRef}
+        opacityRef={labelOpacityRef}
+      />
 
       <div ref={glowRef} style={glowStyle} />
 

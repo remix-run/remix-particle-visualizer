@@ -20,6 +20,13 @@ export interface PresetControlDef {
   initial: number;
 }
 
+export interface PresetLabelDef {
+  id: string;
+  text: string;
+  anchor: [number, number, number];
+  offset: [number, number];
+}
+
 export interface Preset {
   name: string;
   modelUrl?: string;
@@ -29,6 +36,8 @@ export interface Preset {
   glowColor?: [number, number, number];
   controls: PresetControlDef[];
   cameraControls?: PresetControlDef[];
+  labels?: PresetLabelDef[];
+  labelColor?: string;
   separation: number;
   info: InfoState;
 }
