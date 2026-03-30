@@ -48,6 +48,7 @@ export interface SystemSettings {
   morphEase: number;
   showFps: boolean;
   colorMode: number;
+  trailIntensity: number;
 }
 
 export const DEFAULT_SETTINGS: SystemSettings = {
@@ -65,4 +66,5 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   morphEase: 2.3,
   showFps: true,
   colorMode: 0,
+  trailIntensity: 0.23,
 };

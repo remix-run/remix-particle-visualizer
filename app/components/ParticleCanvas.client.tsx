@@ -177,12 +177,29 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
         separation = prs[fromIndex].separation * (1 - t) + prs[toIndex].separation * t;
       }
 
+      const racetrackIdx = prs.findIndex((p) => p.name === "Racetrack");
+      const racetrackDist = racetrackIdx >= 0 ? Math.abs(currentMorph - racetrackIdx) : 0;
+      const departingRacetrack = racetrackDist > 0.01 && racetrackDist < 1.0;
+
+      if (departingRacetrack) {
+        const surge = racetrackDist * racetrackDist * 32;
+        if (fromIndex === racetrackIdx) {
+          ctrlA[7] = surge;
+        }
+        if (toIndex === racetrackIdx) {
+          ctrlB[7] = surge;
+        }
+      }
+
       particles.setPresets(fromIndex, toIndex, blend);
       particles.setControls(padCtrl(ctrlA), padCtrl(ctrlB));
       particles.setSeparation(separation);
 
+      const baseTrail = settingsRef.current.trailIntensity;
+      const trailBoost = departingRacetrack ? racetrackDist * 0.75 : 0;
+      engine.afterImagePass.uniforms['damp'].value = Math.min(baseTrail + trailBoost, 0.97);
+
       const fogCtrl = controlMgrRef.current.controls.get("_fogMode");
-      const racetrackIdx = prs.findIndex((p) => p.name === "Racetrack");
       const fogProximity =
         racetrackIdx >= 0 ? Math.max(0, 1 - Math.abs(currentMorph - racetrackIdx)) : 0;
       const fogActive = fogCtrl !== undefined && fogCtrl.value > 0.5 ? 1 : 0;

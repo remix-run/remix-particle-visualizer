@@ -128,7 +128,7 @@ export default function Home() {
       const target = e.target as HTMLElement | null;
       if (target?.closest(".control-panel, .system-panel, .system-dropdown")) return;
       e.preventDefault();
-      applyDelta(e.deltaY > 0 ? 0.02 : -0.02);
+      applyDelta(e.deltaY > 0 ? 0.01 : -0.01);
     };
 
     let touchStartY = 0;

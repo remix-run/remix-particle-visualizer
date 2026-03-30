@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { AfterimagePass } from "three/addons/postprocessing/AfterimagePass.js";
 import type { SystemSettings } from "./types";
 
 export class Engine {
@@ -11,6 +12,7 @@ export class Engine {
   camera!: THREE.PerspectiveCamera;
   controls!: OrbitControls;
   composer!: EffectComposer;
+  afterImagePass!: AfterimagePass;
   bloomPass!: UnrealBloomPass;
 
   private resizeObserver: ResizeObserver | null = null;
@@ -46,6 +48,9 @@ export class Engine {
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
+    this.afterImagePass = new AfterimagePass(settings.trailIntensity);
+    this.composer.addPass(this.afterImagePass);
+
     const bloomSize = new THREE.Vector2(container.clientWidth, container.clientHeight);
     this.bloomPass = new UnrealBloomPass(bloomSize, settings.bloomStrength, 0.4, settings.bloomThreshold);
     this.composer.addPass(this.bloomPass);
@@ -65,6 +70,7 @@ export class Engine {
 
   updateSettings(settings: SystemSettings) {
     this.renderer.setClearColor(new THREE.Color(settings.backgroundColor));
+    this.afterImagePass.uniforms['damp'].value = settings.trailIntensity;
     this.bloomPass.strength = settings.bloomStrength;
     this.bloomPass.threshold = settings.bloomThreshold;
 

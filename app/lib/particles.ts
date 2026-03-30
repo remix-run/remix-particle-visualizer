@@ -172,7 +172,8 @@ const VERTEX_SHADER = /* glsl */ `
     float c4, float c5, float c6, float c7,
     out vec3 pos, out vec3 col)
   {
-    float speed = c0;
+    float speed = c0 + c7;
+    float baseSpeed = c0;
     float trackW = c1;
     float curveAmp = c2;
     float hillH = c3;
@@ -180,7 +181,7 @@ const VERTEX_SHADER = /* glsl */ `
     float curveSway = c6;
 
     if (curveSway > 0.0) {
-      curveAmp *= sin(time * curveSway * speed);
+      curveAmp *= sin(time * curveSway * baseSpeed);
     }
 
     float zNear = 72.0;
@@ -508,8 +509,9 @@ const VERTEX_SHADER = /* glsl */ `
     float opacityRamp = 1.0 - exp(-sinceL * 3.0);
     vIntro = mix(easedLocal * 0.5, 0.5 + 0.5 * opacityRamp, landed);
 
-    float introOffset = (1.0 - easedLocal) * (10.0 + aRandom * 6.0);
-    vec4 mvPosition = modelViewMatrix * vec4(finalPos + vec3(0.0, introOffset, 0.0), 1.0);
+    float introOffset = (1.0 - easedLocal) * (50.0 + aRandom * 30.0);
+    vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
+    mvPosition.z += introOffset;
     float dist = -mvPosition.z;
     vViewDist = dist;
 

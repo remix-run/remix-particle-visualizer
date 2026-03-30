@@ -163,6 +163,23 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
           </div>
 
           <div className="control-row">
+            <label className="control-label">Trail Intensity</label>
+            <div className="control-slider-row">
+              <input
+                type="range"
+                min={0}
+                max={0.98}
+                step={0.01}
+                value={settings.trailIntensity}
+                onChange={(e) => update({ trailIntensity: parseFloat(e.target.value) })}
+                className="control-slider"
+                style={sliderFillStyle(settings.trailIntensity, 0, 0.98)}
+              />
+              <span className="control-value">{settings.trailIntensity.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="control-row">
             <label className="control-label">HDR Intensity</label>
             <div className="control-slider-row">
               <input
