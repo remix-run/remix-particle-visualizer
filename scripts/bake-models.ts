@@ -73,6 +73,15 @@ const OUTPUT_DIR = "public/models";
 const MAX_POINTS = 100_000;
 const HEADER_BYTES = 36;
 
+interface ModelConfig {
+  edgeRatio?: number;
+  edgeThresholdAngle?: number;
+}
+
+const MODEL_CONFIG: Record<string, ModelConfig> = {
+  "mockup-websites.glb": { edgeRatio: 0.95, edgeThresholdAngle: 15 },
+};
+
 async function loadGLB(filePath: string): Promise<THREE.Group> {
   const io = new NodeIO()
     .registerExtensions(ALL_EXTENSIONS)
@@ -102,6 +111,7 @@ function poissonFilter(
   candidateCol: Float32Array | null,
   candidateCount: number,
   targetCount: number,
+  distScale = 1.0,
 ) {
   const min = [Infinity, Infinity, Infinity];
   const max = [-Infinity, -Infinity, -Infinity];
@@ -117,7 +127,7 @@ function poissonFilter(
   const dy = max[1] - min[1] || 1;
   const dz = max[2] - min[2] || 1;
   const volume = dx * dy * dz;
-  const minDist = Math.pow(volume / targetCount, 1 / 3) * 0.3;
+  const minDist = Math.pow(volume / targetCount, 1 / 3) * 0.3 * distScale;
   const minDist2 = minDist * minDist;
   const cellSize = minDist;
 
@@ -189,7 +199,70 @@ function poissonFilter(
   return { positions, colors, count: accepted };
 }
 
-function sampleSurface(scene: THREE.Group, count: number) {
+function sampleEdges(
+  meshes: THREE.Mesh[],
+  count: number,
+  thresholdAngle: number,
+): Float32Array {
+  const positions = new Float32Array(count * 3);
+  const edgeSegments: { a: THREE.Vector3; b: THREE.Vector3; len: number }[] = [];
+  let totalLen = 0;
+
+  for (const mesh of meshes) {
+    const edgesGeo = new THREE.EdgesGeometry(mesh.geometry, thresholdAngle);
+    const posAttr = edgesGeo.getAttribute("position");
+    for (let i = 0; i < posAttr.count; i += 2) {
+      const a = new THREE.Vector3().fromBufferAttribute(posAttr, i).applyMatrix4(mesh.matrixWorld);
+      const b = new THREE.Vector3().fromBufferAttribute(posAttr, i + 1).applyMatrix4(mesh.matrixWorld);
+      const len = a.distanceTo(b);
+      if (len > 0) {
+        edgeSegments.push({ a, b, len });
+        totalLen += len;
+      }
+    }
+    edgesGeo.dispose();
+  }
+
+  if (edgeSegments.length === 0 || totalLen === 0) {
+    console.warn("  No edges found, falling back to all surface samples");
+    return new Float32Array(0);
+  }
+  console.log(`(${edgeSegments.length} edge segments, total length ${totalLen.toFixed(1)}) `);
+
+  const spacing = totalLen / count;
+  const jitterAmt = spacing * 0.15;
+  let cursor = Math.random() * spacing;
+  let segIdx = 0;
+  let segConsumed = 0;
+  let written = 0;
+
+  while (written < count && segIdx < edgeSegments.length) {
+    const seg = edgeSegments[segIdx];
+    const remaining = seg.len - segConsumed;
+
+    if (cursor <= remaining) {
+      const t = (segConsumed + cursor) / seg.len;
+      const jx = (Math.random() - 0.5) * jitterAmt;
+      const jy = (Math.random() - 0.5) * jitterAmt;
+      const jz = (Math.random() - 0.5) * jitterAmt;
+      positions[written * 3]     = seg.a.x + (seg.b.x - seg.a.x) * t + jx;
+      positions[written * 3 + 1] = seg.a.y + (seg.b.y - seg.a.y) * t + jy;
+      positions[written * 3 + 2] = seg.a.z + (seg.b.z - seg.a.z) * t + jz;
+      written++;
+      segConsumed += cursor;
+      cursor = spacing;
+    } else {
+      cursor -= remaining;
+      segIdx++;
+      segConsumed = 0;
+    }
+  }
+
+  console.log(`  (${written} edge points at ~${spacing.toFixed(4)} spacing) `);
+  return positions.subarray(0, written * 3);
+}
+
+function sampleSurface(scene: THREE.Group, count: number, config?: ModelConfig) {
   scene.updateMatrixWorld(true);
 
   const meshes: THREE.Mesh[] = [];
@@ -222,30 +295,66 @@ function sampleSurface(scene: THREE.Group, count: number) {
   const hasVertexColors = targetMesh.geometry.hasAttribute("color");
   const sampler = new MeshSurfaceSampler(targetMesh).build();
 
-  const poolSize = count * OVERSAMPLE;
-  const poolPos = new Float32Array(poolSize * 3);
-  const poolCol = hasVertexColors ? new Float32Array(poolSize * 3) : null;
-  const tempPos = new THREE.Vector3();
-  const tempColor = new THREE.Color();
+  const edgeRatio = config?.edgeRatio ?? 0;
+  const edgeAngle = config?.edgeThresholdAngle ?? 15;
 
-  for (let i = 0; i < poolSize; i++) {
-    if (hasVertexColors) {
-      sampler.sample(tempPos, undefined, tempColor);
-    } else {
-      sampler.sample(tempPos);
+  let positions: Float32Array;
+  let colors: Float32Array | null;
+  let accepted: number;
+
+  if (edgeRatio >= 1.0) {
+    const worldMeshes = meshes.map((m) => {
+      const geo = m.geometry.clone();
+      geo.applyMatrix4(m.matrixWorld);
+      return new THREE.Mesh(geo);
+    });
+    const edgePos = sampleEdges(worldMeshes, count, edgeAngle);
+    worldMeshes.forEach((m) => m.geometry.dispose());
+    accepted = edgePos.length / 3;
+    positions = edgePos;
+    colors = null;
+  } else {
+    const poolSize = count * OVERSAMPLE;
+    const edgePoolCount = edgeRatio > 0 ? Math.floor(poolSize * edgeRatio) : 0;
+    const surfacePoolCount = poolSize - edgePoolCount;
+
+    const poolPos = new Float32Array(poolSize * 3);
+    const poolCol = hasVertexColors ? new Float32Array(poolSize * 3) : null;
+
+    if (edgePoolCount > 0) {
+      const worldMeshes = meshes.map((m) => {
+        const geo = m.geometry.clone();
+        geo.applyMatrix4(m.matrixWorld);
+        return new THREE.Mesh(geo);
+      });
+      const edgePos = sampleEdges(worldMeshes, edgePoolCount, edgeAngle);
+      const edgesGenerated = Math.min(edgePos.length / 3, edgePoolCount);
+      poolPos.set(edgePos.subarray(0, edgesGenerated * 3), 0);
+      worldMeshes.forEach((m) => m.geometry.dispose());
     }
-    const idx = i * 3;
-    poolPos[idx] = tempPos.x;
-    poolPos[idx + 1] = tempPos.y;
-    poolPos[idx + 2] = tempPos.z;
-    if (poolCol) {
-      poolCol[idx] = tempColor.r;
-      poolCol[idx + 1] = tempColor.g;
-      poolCol[idx + 2] = tempColor.b;
+
+    const tempPos = new THREE.Vector3();
+    const tempColor = new THREE.Color();
+    for (let i = 0; i < surfacePoolCount; i++) {
+      if (hasVertexColors) {
+        sampler.sample(tempPos, undefined, tempColor);
+      } else {
+        sampler.sample(tempPos);
+      }
+      const writeIdx = (edgePoolCount + i) * 3;
+      poolPos[writeIdx] = tempPos.x;
+      poolPos[writeIdx + 1] = tempPos.y;
+      poolPos[writeIdx + 2] = tempPos.z;
+      if (poolCol) {
+        poolCol[writeIdx] = tempColor.r;
+        poolCol[writeIdx + 1] = tempColor.g;
+        poolCol[writeIdx + 2] = tempColor.b;
+      }
     }
+
+    const distScale = edgeRatio > 0.5 ? 0.3 : 1.0;
+    ({ positions, colors, count: accepted } = poissonFilter(poolPos, poolCol, poolSize, count, distScale));
   }
-
-  const { positions, colors, count: accepted } = poissonFilter(poolPos, poolCol, poolSize, count);
 
   const bmin = [Infinity, Infinity, Infinity];
   const bmax = [-Infinity, -Infinity, -Infinity];
@@ -345,7 +454,8 @@ async function main() {
     process.stdout.write(`  ${file} → ${outName} ... `);
 
     const scene = await loadGLB(srcPath);
-    const { positions, colors, accepted } = sampleSurface(scene, MAX_POINTS);
+    const config = MODEL_CONFIG[file];
+    const { positions, colors, accepted } = sampleSurface(scene, MAX_POINTS, config);
     const pointCount = Math.min(accepted, MAX_POINTS);
     const { rawBytes, ptsBytes } = writePts(outPath, positions, colors, pointCount);
     const glbSize = fs.statSync(srcPath).size;
