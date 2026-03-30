@@ -82,6 +82,10 @@ const MODEL_CONFIG: Record<string, ModelConfig> = {
   "mockup-websites.glb": { edgeRatio: 0.95, edgeThresholdAngle: 15 },
 };
 
+const EXTRA_BAKES: { source: string; output: string; config: ModelConfig }[] = [
+  { source: "racecar.glb", output: "racecar-drive.pts", config: { edgeRatio: 0.85, edgeThresholdAngle: 25 } },
+];
+
 async function loadGLB(filePath: string): Promise<THREE.Group> {
   const io = new NodeIO()
     .registerExtensions(ALL_EXTENSIONS)
@@ -463,6 +467,26 @@ async function main() {
     console.log(
       `done  ${pointCount} pts (GLB ${fmt(glbSize)} → PTS ${fmt(ptsBytes)}, ` +
       `${((1 - ptsBytes / glbSize) * 100).toFixed(0)}% smaller)`
+    );
+  }
+
+  for (const extra of EXTRA_BAKES) {
+    const srcPath = path.join(SOURCE_DIR, extra.source);
+    if (!fs.existsSync(srcPath)) {
+      console.warn(`  EXTRA: ${extra.source} not found, skipping`);
+      continue;
+    }
+    const outPath = path.join(OUTPUT_DIR, extra.output);
+    process.stdout.write(`  ${extra.source} → ${extra.output} (extra) ... `);
+
+    const scene = await loadGLB(srcPath);
+    const { positions, colors, accepted } = sampleSurface(scene, MAX_POINTS, extra.config);
+    const pointCount = Math.min(accepted, MAX_POINTS);
+    const { ptsBytes } = writePts(outPath, positions, colors, pointCount);
+    const glbSize = fs.statSync(srcPath).size;
+
+    console.log(
+      `done  ${pointCount} pts (GLB ${fmt(glbSize)} → PTS ${fmt(ptsBytes)})`
     );
   }
 

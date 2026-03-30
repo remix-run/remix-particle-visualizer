@@ -29,6 +29,7 @@ const VERTEX_SHADER = /* glsl */ `
   uniform vec2 uMousePos;
   uniform float uCursorRepulsion;
   uniform float uCarLaneOffset;
+  uniform float uCarLaneActivity;
   uniform float uCarPosY;
   uniform float uMorphEase;
   uniform float uColorMode;
@@ -37,9 +38,11 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uModelCount0;
   uniform float uModelCount1;
   uniform float uModelCount2;
+  uniform float uModelCount3;
   uniform sampler2D uModelTex0;
   uniform sampler2D uModelTex1;
   uniform sampler2D uModelTex2;
+  uniform sampler2D uModelTex3;
 
   /* ── helpers ───────────────────────────────────────────── */
 
@@ -79,14 +82,15 @@ const VERTEX_SHADER = /* glsl */ `
   }
 
   vec3 sampleModel(int slot, float fi) {
-    float cnt = (slot == 0) ? uModelCount0 : (slot == 1) ? uModelCount1 : uModelCount2;
+    float cnt = (slot == 0) ? uModelCount0 : (slot == 1) ? uModelCount1 : (slot == 2) ? uModelCount2 : uModelCount3;
     float idx = (cnt > 0.0) ? mod(fi, cnt) : 0.0;
     float u = (mod(idx, ${MODEL_TEX_W}.0) + 0.5) / ${MODEL_TEX_W}.0;
     float v = (floor(idx / ${MODEL_TEX_W}.0) + 0.5) / ${MODEL_TEX_H}.0;
     vec2 uv = vec2(u, v);
     if (slot == 0) return texture2D(uModelTex0, uv).xyz;
     else if (slot == 1) return texture2D(uModelTex1, uv).xyz;
-    else           return texture2D(uModelTex2, uv).xyz;
+    else if (slot == 2) return texture2D(uModelTex2, uv).xyz;
+    else           return texture2D(uModelTex3, uv).xyz;
   }
 
   /* ── preset 0: Remix Logo ─────────────────────────────── */
@@ -420,22 +424,71 @@ const VERTEX_SHADER = /* glsl */ `
     out vec3 pos, out vec3 col)
   {
     float fcnt = float(cnt);
-    int carStart = int(floor(fcnt * 0.95));
+    int trackEnd = int(floor(fcnt * 0.88));
+    int carStart = int(floor(fcnt * 0.92));
 
-    if (int(fi) >= carStart) {
-      float carScale = 7.5;
-      float trackY = -24.0;
-      float carZ = 58.0;
-      float carY = trackY + carScale * 0.35 + uCarPosY;
+    float carScale = 7.5;
+    float trackY = -24.0;
+    float carZ = 52.0;
+    float carY = trackY + carScale * 0.35 + uCarPosY;
 
-      float along = sqrt((72.0 - carZ) / (72.0 - (-100.0)));
-      float perspN = 1.0 - along * 0.5;
-      float halfW = c1 * 0.5 * perspN;
-      float laneX = clamp(uCarLaneOffset, -1.0, 1.0) * halfW;
+    float along = sqrt((72.0 - carZ) / (72.0 - (-100.0)));
+    float perspN = 1.0 - along * 0.5;
+    float halfW = c1 * 0.5 * perspN;
+    float laneX = clamp(uCarLaneOffset, -1.0, 1.0) * halfW;
 
+    int carCount = int(fcnt) - carStart;
+    int wheelTotal = carCount / 5;
+    int wheelStart = int(fcnt) - wheelTotal;
+
+    float wheelWidth = c3;
+    float wheelBase = c4;
+    float wheelTrk = c5;
+    float wheelYPos = c6;
+    float wheelZOff = c7;
+    float halfTrk = wheelTrk * 0.5;
+    float frontZ = wheelBase * 0.5 - 0.02 + wheelZOff;
+    float rearZ = -wheelBase * 0.5 - 0.02 + wheelZOff;
+
+    vec3 wheels[4];
+    wheels[0] = vec3(-halfTrk, wheelYPos,  frontZ);
+    wheels[1] = vec3( halfTrk, wheelYPos,  frontZ);
+    wheels[2] = vec3(-halfTrk, wheelYPos,  rearZ);
+    wheels[3] = vec3( halfTrk, wheelYPos,  rearZ);
+
+    float wheelDiscR = 0.12;
+    float spinAngle = time * c0 * 20.0;
+    float goldenAngle = 2.39996323;
+
+    if (int(fi) >= wheelStart) {
+      int wfi = int(fi) - wheelStart;
+      int perWheel = wheelTotal / 4;
+      int wIdx = min(wfi / perWheel, 3);
+      int localIdx = wfi - wIdx * perWheel;
+      float t = float(localIdx) / float(perWheel);
+      float r = sqrt(t) * wheelDiscR;
+      float theta = float(localIdx) * goldenAngle + spinAngle;
+      float xSpread = (fract(float(localIdx) * 0.7071) - 0.5) * wheelWidth;
+
+      vec3 wc = wheels[wIdx];
+      vec3 mp = vec3(wc.x + xSpread, wc.y + r * cos(theta), wc.z + r * sin(theta));
+
+      float mx = mp.x * carScale;
+      float my = mp.y * carScale;
+      float mz = mp.z * carScale;
+
+      pos = vec3(mx + laneX, my + carY, -mz + carZ);
+
+      float height = wc.y * 0.5 + 0.5;
+      float pulse = 1.0 + 0.1 * sin(time * 2.5 + float(localIdx) * 0.02);
+      float lum = (0.3 + 0.5 * height) * pulse;
+      col = hsl2rgb(0.55 + 0.1 * height, 0.6, lum);
+
+    } else if (int(fi) >= carStart) {
       float carFi = float(int(fi) - carStart);
-      float spreadFi = floor(fract(carFi * 0.6180339887) * uModelCount1);
-      vec3 mp = sampleModel(1, spreadFi);
+      float spreadFi = floor(fract(carFi * 0.6180339887) * uModelCount3);
+      vec3 mp = sampleModel(3, spreadFi);
+
       float mx = mp.x * carScale;
       float my = mp.y * carScale;
       float mz = mp.z * carScale;
@@ -446,8 +499,56 @@ const VERTEX_SHADER = /* glsl */ `
       float pulse = 1.0 + 0.1 * sin(time * 2.5 + carFi * 0.02);
       float lum = (0.3 + 0.5 * height) * pulse;
       col = hsl2rgb(0.55 + 0.1 * height, 0.6, lum);
+
+    } else if (int(fi) >= trackEnd) {
+      float trailFi = float(int(fi) - trackEnd);
+      float speed = c0;
+
+      float ringCount = 9.0;
+      float ringSlot = floor(hash11(trailFi) * ringCount);
+      float age = fract(ringSlot / ringCount + time * speed * 0.15);
+      float trailDepth = 9.0;
+      float rearOffset = carScale * 1.0;
+      float tz = carZ + rearOffset + age * trailDepth;
+
+      float rectW = 6.0 * (1.0 - age);
+      float rectH = 3.0 * (1.0 - age);
+      float halfRW = rectW * 0.5;
+      float halfRH = rectH * 0.5;
+      float perim = 2.0 * (rectW + rectH);
+      float d = hash11(trailFi + 0.5) * perim;
+      float px, py;
+      if (d < rectW) {
+        px = d - halfRW;
+        py = halfRH;
+      } else if (d < rectW + rectH) {
+        px = halfRW;
+        py = halfRH - (d - rectW);
+      } else if (d < 2.0 * rectW + rectH) {
+        px = halfRW - (d - rectW - rectH);
+        py = -halfRH;
+      } else {
+        px = -halfRW;
+        py = -halfRH + (d - 2.0 * rectW - rectH);
+      }
+      float jit = (hash11(trailFi * 2.317) - 0.5) * 0.05;
+      px += jit;
+      py += (hash11(trailFi * 3.491) - 0.5) * 0.05;
+
+      float trailLaneX = laneX;
+      float waveSway = sin(time * speed * 2.0 - age * 8.0) * laneX * age * 0.5 * uCarLaneActivity;
+      float tx = trailLaneX + waveSway + px;
+      float ty = carY + py;
+
+      pos = vec3(tx, ty, tz);
+
+      float ratio = fract(age + time * 0.08);
+      vec3 gradCol = brandGradient(ratio, time * 0.25);
+      float fade = (1.0 - age * age) * 0.1;
+      col = gradCol * fade;
+
     } else {
-      presetRacetrack(fi, carStart, time, c0,c1,c2,c3,c4,c5,c6, 0.0, pos, col);
+      presetRacetrack(fi, trackEnd, time, c0, c1, c2, 7.8, 1.0, 0.02, 0.0, 0.0, pos, col);
     }
   }
 
@@ -541,7 +642,7 @@ const VERTEX_SHADER = /* glsl */ `
 
     float introOffset = (1.0 - easedLocal) * (50.0 + aRandom * 30.0);
     vec4 mvPosition = modelViewMatrix * vec4(finalPos, 1.0);
-    mvPosition.z += introOffset;
+    mvPosition.z -= introOffset;
     float dist = -mvPosition.z;
     vViewDist = dist;
 
@@ -641,6 +742,7 @@ export class ParticleSystem {
         uMousePos: { value: [0, 0] },
         uCursorRepulsion: { value: 0 },
         uCarLaneOffset: { value: 0 },
+        uCarLaneActivity: { value: 0 },
         uCarPosY: { value: 0 },
         uColorMode: { value: 0.0 },
         uMorphEase: { value: 2.0 },
@@ -649,9 +751,11 @@ export class ParticleSystem {
         uModelCount0: { value: 0 },
         uModelCount1: { value: 0 },
         uModelCount2: { value: 0 },
+        uModelCount3: { value: 0 },
         uModelTex0: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
         uModelTex1: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
         uModelTex2: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
+        uModelTex3: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -721,6 +825,10 @@ export class ParticleSystem {
     if (this.material) this.material.uniforms.uCarLaneOffset.value = value;
   }
 
+  setCarLaneActivity(value: number) {
+    if (this.material) this.material.uniforms.uCarLaneActivity.value = value;
+  }
+
   setCarPosY(value: number) {
     if (this.material) this.material.uniforms.uCarPosY.value = value;
   }
@@ -751,9 +859,12 @@ export class ParticleSystem {
     } else if (slot === 1) {
       this.material.uniforms.uModelTex1.value = texture;
       this.material.uniforms.uModelCount1.value = pointCount;
-    } else {
+    } else if (slot === 2) {
       this.material.uniforms.uModelTex2.value = texture;
       this.material.uniforms.uModelCount2.value = pointCount;
+    } else {
+      this.material.uniforms.uModelTex3.value = texture;
+      this.material.uniforms.uModelCount3.value = pointCount;
     }
   }
 

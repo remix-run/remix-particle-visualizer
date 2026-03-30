@@ -135,9 +135,13 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
     let mouseNormY = 0;
     let smoothMouseOffsetX = 0;
     let smoothCarLane = 0;
+    let prevCarLane = 0;
+    let laneActivity = 0;
     const MOUSE_RANGE = 9;
     const MOUSE_LERP = 0.04;
     const CAR_LANE_LERP = 0.06;
+    const ACTIVITY_DECAY = 0.97;
+    const ACTIVITY_GAIN = 20.0;
 
     const onMouseMove = (e: MouseEvent) => {
       mouseNormX = (e.clientX / window.innerWidth) * 2 - 1;
@@ -234,6 +238,11 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
         smoothCarLane += (0 - smoothCarLane) * CAR_LANE_LERP;
       }
       particles.setCarLaneOffset(smoothCarLane * driveProximity);
+
+      const laneDelta = Math.abs(smoothCarLane - prevCarLane);
+      laneActivity = Math.max(laneActivity * ACTIVITY_DECAY, Math.min(laneDelta * ACTIVITY_GAIN, 1.0));
+      prevCarLane = smoothCarLane;
+      particles.setCarLaneActivity(laneActivity * driveProximity);
 
       const carPosYCtrl = controlMgrRef.current.controls.get("_carPosY");
       particles.setCarPosY(carPosYCtrl ? carPosYCtrl.value * driveProximity : 0);
