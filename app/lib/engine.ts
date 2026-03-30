@@ -6,6 +6,11 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { AfterimagePass } from "three/addons/postprocessing/AfterimagePass.js";
 import type { SystemSettings } from "./types";
 
+function screenScale(width: number): number {
+  const ref = 1440;
+  return Math.min(width / ref, 1);
+}
+
 export class Engine {
   renderer!: THREE.WebGLRenderer;
   scene!: THREE.Scene;
@@ -16,6 +21,7 @@ export class Engine {
   bloomPass!: UnrealBloomPass;
 
   private resizeObserver: ResizeObserver | null = null;
+  private containerWidth = 1440;
 
   init(canvas: HTMLCanvasElement, container: HTMLElement, settings: SystemSettings) {
     this.scene = new THREE.Scene();
@@ -51,8 +57,10 @@ export class Engine {
     this.afterImagePass = new AfterimagePass(settings.trailIntensity);
     this.composer.addPass(this.afterImagePass);
 
+    this.containerWidth = container.clientWidth;
+    const s = screenScale(this.containerWidth);
     const bloomSize = new THREE.Vector2(container.clientWidth, container.clientHeight);
-    this.bloomPass = new UnrealBloomPass(bloomSize, settings.bloomStrength, 0.4, settings.bloomThreshold);
+    this.bloomPass = new UnrealBloomPass(bloomSize, settings.bloomStrength * s, 0.4, settings.bloomThreshold);
     this.composer.addPass(this.bloomPass);
 
     this.resizeObserver = new ResizeObserver(() => this.handleResize(container));
@@ -62,16 +70,22 @@ export class Engine {
   private handleResize(container: HTMLElement) {
     const w = container.clientWidth;
     const h = container.clientHeight;
+    this.containerWidth = w;
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
     this.composer.setSize(w, h);
   }
 
+  getScreenScale(): number {
+    return screenScale(this.containerWidth);
+  }
+
   updateSettings(settings: SystemSettings) {
+    const s = screenScale(this.containerWidth);
     this.renderer.setClearColor(new THREE.Color(settings.backgroundColor));
     this.afterImagePass.uniforms['damp'].value = settings.trailIntensity;
-    this.bloomPass.strength = settings.bloomStrength;
+    this.bloomPass.strength = settings.bloomStrength * s;
     this.bloomPass.threshold = settings.bloomThreshold;
 
     if (this.camera.fov !== settings.cameraFov) {

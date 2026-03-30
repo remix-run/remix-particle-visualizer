@@ -69,22 +69,11 @@ const VERTEX_SHADER = /* glsl */ `
     return fract(p);
   }
 
-  vec3 brandGradient(float phase) {
-    vec3 c0 = vec3(0.18, 0.67, 0.98);
-    vec3 c1 = vec3(0.29, 0.87, 0.50);
-    vec3 c2 = vec3(0.98, 0.80, 0.08);
-    vec3 c3 = vec3(0.96, 0.45, 0.71);
-    vec3 c4 = vec3(0.94, 0.27, 0.27);
-
-    float idx = fract(phase) * 5.0;
-    float t = fract(idx);
-    float seg = floor(idx);
-
-    if      (seg < 1.0) return mix(c0, c1, t);
-    else if (seg < 2.0) return mix(c1, c2, t);
-    else if (seg < 3.0) return mix(c2, c3, t);
-    else if (seg < 4.0) return mix(c3, c4, t);
-    else                return mix(c4, c0, t);
+  vec3 brandGradient(float ratio, float t) {
+    float hue = fract(ratio + t * 0.51);
+    float sat = 0.8 + sin(t + ratio * 10.0) * 0.2;
+    float lum = 0.55 + 0.35 * cos(t + ratio * 3.14159);
+    return hsl2rgb(hue, clamp(sat, 0.5, 1.0), clamp(lum, 0.2, 0.85));
   }
 
   vec3 sampleModel(int slot, float fi) {
@@ -482,9 +471,8 @@ const VERTEX_SHADER = /* glsl */ `
     }
 
     if (uColorMode > 1.5) {
-      float spatialPhase = dot(finalPos, vec3(0.018, 0.014, 0.012));
-      float phase = spatialPhase + uTime * 0.25;
-      vec3 gradCol = brandGradient(phase);
+      float spatialRatio = fract(dot(finalPos, vec3(0.018, 0.014, 0.012)));
+      vec3 gradCol = brandGradient(spatialRatio, uTime * 0.25);
       float origBright = dot(finalCol, vec3(0.299, 0.587, 0.114));
       finalCol = gradCol * (0.5 + origBright * 1.5);
     } else if (uColorMode > 0.5) {

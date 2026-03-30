@@ -231,9 +231,6 @@ export default function Home() {
 
   const fadeClass = introDone ? "" : "ui-fade-in";
 
-  const BRAND_GLOW: [number, number, number][] = [
-    [45, 172, 249], [74, 222, 128], [250, 204, 21], [244, 114, 182], [239, 68, 68],
-  ];
   const RACECAR_GLOW: [number, number, number] = [0.3, 0.35, 0.55];
 
   const glowRef = useRef<HTMLDivElement>(null);
@@ -250,7 +247,7 @@ export default function Home() {
       g = Math.round(RACECAR_GLOW[1] * 255);
       bl = Math.round(RACECAR_GLOW[2] * 255);
     } else if (settings.colorMode === 2) {
-      r = BRAND_GLOW[0][0]; g = BRAND_GLOW[0][1]; bl = BRAND_GLOW[0][2];
+      r = 45; g = 172; bl = 249;
     } else {
       const idxA = Math.floor(morphValue);
       const idxB = Math.min(idxA + 1, presets.length - 1);
@@ -280,21 +277,17 @@ export default function Home() {
       return;
     }
     const intensity = settings.glowIntensity;
-    const colors = BRAND_GLOW;
     const tick = () => {
       const el = glowRef.current;
       if (!el) { glowRafRef.current = requestAnimationFrame(tick); return; }
-      const phase = ((performance.now() / 1000) * 0.15) % 1;
-      const idx = phase * 5;
-      const i0 = Math.floor(idx) % 5;
-      const i1 = (i0 + 1) % 5;
-      const t = idx - Math.floor(idx);
-      const r = Math.round(colors[i0][0] + (colors[i1][0] - colors[i0][0]) * t);
-      const g = Math.round(colors[i0][1] + (colors[i1][1] - colors[i0][1]) * t);
-      const b = Math.round(colors[i0][2] + (colors[i1][2] - colors[i0][2]) * t);
+      const t = (performance.now() / 1000) * 0.25;
+      const hue = (t * 0.51) % 1;
+      const sat = 80 + Math.sin(t) * 15;
+      const lum = 55 + 25 * Math.cos(t);
+      const hDeg = Math.round(hue * 360);
       const inner = intensity;
       const mid = intensity * 0.3;
-      el.style.background = `radial-gradient(ellipse at 50% 50%, rgba(${r},${g},${b},${inner}) 0%, rgba(${r},${g},${b},${mid}) 40%, transparent 70%)`;
+      el.style.background = `radial-gradient(ellipse at 50% 50%, hsla(${hDeg},${Math.round(sat)}%,${Math.round(lum)}%,${inner}) 0%, hsla(${hDeg},${Math.round(sat)}%,${Math.round(lum)}%,${mid}) 40%, transparent 70%)`;
       glowRafRef.current = requestAnimationFrame(tick);
     };
     glowRafRef.current = requestAnimationFrame(tick);

@@ -143,8 +143,9 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       const currentMorph = morphValueRef.current;
 
       engine.updateSettings(settingsRef.current);
+      const s = engine.getScreenScale();
       particles.setPointSize(settingsRef.current.pointSize);
-      particles.setHdrIntensity(settingsRef.current.hdrIntensity);
+      particles.setHdrIntensity(settingsRef.current.hdrIntensity * s);
       particles.setMousePos(mouseNormX, -mouseNormY);
       particles.setCursorRepulsion(settingsRef.current.cursorRepulsion);
       particles.setMorphEase(settingsRef.current.morphEase);
@@ -196,7 +197,7 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       particles.setSeparation(separation);
 
       const baseTrail = settingsRef.current.trailIntensity;
-      const trailBoost = departingRacetrack ? racetrackDist * 0.75 : 0;
+      const trailBoost = departingRacetrack ? Math.sin(racetrackDist * Math.PI) * 0.75 : 0;
       engine.afterImagePass.uniforms['damp'].value = Math.min(baseTrail + trailBoost, 0.97);
 
       const fogCtrl = controlMgrRef.current.controls.get("_fogMode");
