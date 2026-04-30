@@ -19,7 +19,7 @@ Start the Vite development server with the Remix SPA fallback:
 pnpm dev
 ```
 
-Your application will be available at `http://localhost:5173`.
+Your application will be available at `http://localhost:44100`.
 
 ## Production
 
@@ -37,6 +37,12 @@ pnpm start
 
 The server listens on `PORT` or `3000` by default and serves `build/client` through Remix
 `fetch-router` middleware.
+
+## GitHub Pages
+
+Pushes to `main` deploy through the `Deploy GitHub Pages` workflow. The workflow uses
+GitHub's Pages Actions to configure the site, build with the Pages base path, add `404.html`
+for SPA fallback behavior, upload `build/client`, and publish the artifact.
 
 ## Model Assets
 

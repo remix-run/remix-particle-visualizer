@@ -8,6 +8,17 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 import { createSpaRouter } from "./app/remix/router";
 
+function normalizeBase(base: string): string {
+  const trimmedBase = base.trim();
+  if (!trimmedBase || trimmedBase === "/") return "/";
+
+  return `/${trimmedBase.replace(/^\/+|\/+$/g, "")}/`;
+}
+
+function deploymentBase(): string {
+  return normalizeBase(process.env.BASE_PATH ?? "/");
+}
+
 function requestHeaders(rawHeaders: string[]): Headers {
   const headers = new Headers();
 
@@ -62,6 +73,7 @@ function remixSpaFallback(): Plugin {
 }
 
 export default defineConfig({
+  base: deploymentBase(),
   server: {
     port: 44100,
     strictPort: true,

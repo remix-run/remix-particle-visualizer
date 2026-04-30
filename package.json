@@ -2,6 +2,7 @@
   "name": "remix-particle-visualizer",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.28.0",
   "scripts": {
     "build": "vite build && tsc",
     "dev": "vite",
