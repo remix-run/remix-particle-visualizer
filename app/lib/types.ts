@@ -62,19 +62,19 @@ export interface SystemSettings {
 }
 
 export const DEFAULT_SETTINGS: SystemSettings = {
-  particleCount: 160000,
+  particleCount: 129000,
   pointSize: 0.2,
   backgroundColor: "#000000",
-  bloomStrength: 0.8,
+  bloomStrength: 0.7,
   bloomThreshold: 0,
-  dofAmount: 0,
+  dofAmount: 0.5,
   dofFocus: 80,
   cameraFov: 60,
-  glowIntensity: 0.40,
-  hdrIntensity: 1.0,
+  glowIntensity: 0.50,
+  hdrIntensity: 0.5,
   cursorRepulsion: 0.2,
   morphEase: 2.3,
   showFps: true,
   colorMode: 0,
-  trailIntensity: 0.23,
+  trailIntensity: 0.16,
 };

@@ -1,5 +1,21 @@
 import type { Preset } from "./types";
 
+const remixLogo: Preset = {
+  name: "Remix Logo",
+  modelUrl: "/models/remix-logo.pts",
+  modelSlot: 4,
+  glowColor: [0.3, 0.35, 0.55],
+  separation: 0,
+  controls: [
+    { id: "scale", label: "Scale", min: 5, max: 150, initial: 42 },
+    { id: "rotX", label: "Rotate X", min: -180, max: 180, initial: 0 },
+    { id: "rotY", label: "Rotate Y", min: -180, max: 180, initial: 0 },
+    { id: "rotZ", label: "Rotate Z", min: -180, max: 180, initial: 0 },
+    { id: "spin", label: "Spin Speed", min: 0, max: 1, initial: 0.18 },
+  ],
+  info: { title: "Remix Logo", description: "The Remix wordmark rendered as a particle cloud" },
+};
+
 const websiteMockups: Preset = {
   name: "Website Mockups",
   modelUrl: "/models/mockup-websites.pts",
@@ -120,4 +136,4 @@ const drive: Preset = {
   info: { title: "Drive", description: "Race car driving on a straight mountain circuit" },
 };
 
-export const presets: Preset[] = [racetrack, racecar, runner, websiteMockups, underTheHood, drive];
+export const presets: Preset[] = [remixLogo, racetrack, racecar, runner, websiteMockups, underTheHood, drive];

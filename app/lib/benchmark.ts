@@ -62,7 +62,7 @@ export function benchmarkParticleCount(): Promise<number> {
         for (const count of CANDIDATES) {
           particles.init(scene, count, DEFAULT_SETTINGS.pointSize);
           particles.setIntroProgress(1.5);
-          particles.setPresets(2, 2, 0);
+          particles.setPresets(1, 1, 0);
           particles.setControls(racetrackInitials, racetrackInitials);
           particles.setSeparation(0);
 

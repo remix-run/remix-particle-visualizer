@@ -39,10 +39,12 @@ const VERTEX_SHADER = /* glsl */ `
   uniform float uModelCount1;
   uniform float uModelCount2;
   uniform float uModelCount3;
+  uniform float uModelCount4;
   uniform sampler2D uModelTex0;
   uniform sampler2D uModelTex1;
   uniform sampler2D uModelTex2;
   uniform sampler2D uModelTex3;
+  uniform sampler2D uModelTex4;
 
   /* ── helpers ───────────────────────────────────────────── */
 
@@ -82,20 +84,66 @@ const VERTEX_SHADER = /* glsl */ `
   }
 
   vec3 sampleModel(int slot, float fi) {
-    float cnt = (slot == 0) ? uModelCount0 : (slot == 1) ? uModelCount1 : (slot == 2) ? uModelCount2 : uModelCount3;
+    float cnt =
+      (slot == 0) ? uModelCount0 :
+      (slot == 1) ? uModelCount1 :
+      (slot == 2) ? uModelCount2 :
+      (slot == 3) ? uModelCount3 :
+                    uModelCount4;
     float idx = (cnt > 0.0) ? mod(fi, cnt) : 0.0;
     float u = (mod(idx, ${MODEL_TEX_W}.0) + 0.5) / ${MODEL_TEX_W}.0;
     float v = (floor(idx / ${MODEL_TEX_W}.0) + 0.5) / ${MODEL_TEX_H}.0;
     vec2 uv = vec2(u, v);
-    if (slot == 0) return texture2D(uModelTex0, uv).xyz;
+    if      (slot == 0) return texture2D(uModelTex0, uv).xyz;
     else if (slot == 1) return texture2D(uModelTex1, uv).xyz;
     else if (slot == 2) return texture2D(uModelTex2, uv).xyz;
-    else           return texture2D(uModelTex3, uv).xyz;
+    else if (slot == 3) return texture2D(uModelTex3, uv).xyz;
+    else                return texture2D(uModelTex4, uv).xyz;
   }
 
-  /* ── preset 0: Remix Logo ─────────────────────────────── */
+  /* ── preset: Remix Logo (slot 4) ──────────────────────── */
 
   void presetRemixLogo(float fi, int cnt, float time,
+    float c0, float c1, float c2, float c3,
+    float c4, float c5, float c6, float c7,
+    out vec3 pos, out vec3 col)
+  {
+    float scale = c0;
+    float rX = c1 * 0.01745329;
+    float rY = c2 * 0.01745329 - time * c4;
+    float rZ = c3 * 0.01745329;
+
+    vec3 mp = sampleModel(4, fi);
+    float px = mp.x * scale;
+    float py = mp.y * scale;
+    float pz = mp.z * scale;
+
+    float cx = cos(rX), sx = sin(rX);
+    float t1y = py * cx - pz * sx;
+    float t1z = py * sx + pz * cx;
+    py = t1y; pz = t1z;
+
+    float cy = cos(rY), sy = sin(rY);
+    float t2x = px * cy + pz * sy;
+    float t2z = -px * sy + pz * cy;
+    px = t2x; pz = t2z;
+
+    float cz = cos(rZ), sz = sin(rZ);
+    float t3x = px * cz - py * sz;
+    float t3y = px * sz + py * cz;
+    px = t3x; py = t3y;
+
+    pos = vec3(px, py, pz);
+
+    float height = mp.y * 0.5 + 0.5;
+    float pulse = 1.0 + 0.1 * sin(time * 2.5 + fi * 0.02);
+    float lum = (0.3 + 0.5 * height) * pulse;
+    col = hsl2rgb(0.55 + 0.1 * height, 0.6, lum);
+  }
+
+  /* ── preset: Website Mockups (slot 0) ─────────────────── */
+
+  void presetMockups(float fi, int cnt, float time,
     float c0, float c1, float c2, float c3,
     float c4, float c5, float c6, float c7,
     out vec3 pos, out vec3 col)
@@ -559,11 +607,12 @@ const VERTEX_SHADER = /* glsl */ `
     float c4, float c5, float c6, float c7,
     out vec3 pos, out vec3 col)
   {
-    if      (id == 0) presetRacetrack    (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else if (id == 1) presetRacecar      (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else if (id == 2) presetRunner       (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else if (id == 3) presetRemixLogo    (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
-    else if (id == 4) presetRacecar      (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    if      (id == 0) presetRemixLogo    (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 1) presetRacetrack    (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 2) presetRacecar      (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 3) presetRunner       (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 4) presetMockups      (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
+    else if (id == 5) presetRacecar      (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
     else              presetRacetrackCar (fi, cnt, time, c0,c1,c2,c3,c4,c5,c6,c7, pos, col);
   }
 
@@ -752,10 +801,12 @@ export class ParticleSystem {
         uModelCount1: { value: 0 },
         uModelCount2: { value: 0 },
         uModelCount3: { value: 0 },
+        uModelCount4: { value: 0 },
         uModelTex0: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
         uModelTex1: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
         uModelTex2: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
         uModelTex3: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
+        uModelTex4: { value: new THREE.DataTexture(new Float32Array(4), 1, 1, THREE.RGBAFormat, THREE.FloatType) },
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -862,9 +913,12 @@ export class ParticleSystem {
     } else if (slot === 2) {
       this.material.uniforms.uModelTex2.value = texture;
       this.material.uniforms.uModelCount2.value = pointCount;
-    } else {
+    } else if (slot === 3) {
       this.material.uniforms.uModelTex3.value = texture;
       this.material.uniforms.uModelCount3.value = pointCount;
+    } else {
+      this.material.uniforms.uModelTex4.value = texture;
+      this.material.uniforms.uModelCount4.value = pointCount;
     }
   }
 
