@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { publicAssetPath } from "~/lib/public-assets";
 import type { InfoState } from "~/lib/types";
 
 interface Props {
@@ -39,7 +40,7 @@ export default function HUD({ info }: Props) {
 
   return (
     <div className="hud">
-      <img src="/remix-logo.svg" alt="Remix" className="hud-logo" />
+      <img src={publicAssetPath("remix-logo.svg")} alt="Remix" className="hud-logo" />
       <h2 className="hud-title">
         <span className="hud-prefix">Particle Visualizer: </span>
         {displayed || "\u00A0"}

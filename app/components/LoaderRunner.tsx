@@ -1,7 +1,9 @@
+import { publicAssetPath } from "~/lib/public-assets";
+
 export default function LoaderRunner() {
   return (
     <img
-      src="/images/remix-runner.gif"
+      src={publicAssetPath("images/remix-runner.gif")}
       alt=""
       width={48}
       height={48}
