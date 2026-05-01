@@ -1,87 +1,56 @@
-# Welcome to React Router!
+# Remix Particle Visualizer
 
-A modern, production-ready template for building full-stack React applications using React Router.
+A full-screen 3D particle visualizer powered by Remix, Vite, React, Tailwind CSS, and Three.js.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
-
-## Features
-
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+The app stays a single-page browser experience. Remix owns the route contract and production
+Fetch-based server, while Vite builds and serves the React client.
 
 ## Getting Started
 
-### Installation
-
-Install the dependencies:
+Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
-### Development
-
-Start the development server with HMR:
+Start the Vite development server with the Remix SPA fallback:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
-Your application will be available at `http://localhost:5173`.
+Your application will be available at `http://localhost:44100`.
 
-## Building for Production
+## Production
 
 Create a production build:
 
 ```bash
-npm run build
+pnpm build
 ```
 
-## Deployment
-
-### Docker Deployment
-
-To build and run using Docker:
+Start the Remix server:
 
 ```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
+pnpm start
 ```
 
-The containerized application can be deployed to any platform that supports Docker, including:
+The server listens on `PORT` or `3000` by default and serves `build/client` through Remix
+`fetch-router` middleware.
 
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
+## GitHub Pages
 
-### DIY Deployment
+Pushes to `main` deploy through the `Deploy GitHub Pages` workflow. The workflow uses
+GitHub's Pages Actions to configure the site, build with the Pages base path, add `404.html`
+for SPA fallback behavior, upload `build/client`, and publish the artifact.
 
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
+## Model Assets
 
-Make sure to deploy the output of `npm run build`
+Source GLBs can be baked to `.pts` files with:
 
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
+```bash
+pnpm bake
 ```
 
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
+Those generated model assets are served from `public/models` when present, with procedural
+fallbacks in the visualizer when they are not.

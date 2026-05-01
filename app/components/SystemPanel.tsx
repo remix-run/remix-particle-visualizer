@@ -15,7 +15,7 @@ export default function SystemPanel({ settings, onSettingsChange, fps, uiVisible
   const [open, setOpen] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const copiedTimer = useRef<ReturnType<typeof setTimeout>>();
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(COPY_PROMPT).then(() => {

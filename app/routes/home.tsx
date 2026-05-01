@@ -1,8 +1,7 @@
 import { Suspense, lazy, useState, useRef, useCallback, useEffect, useMemo } from "react";
-import type { Route } from "./+types/home";
 import { presets } from "~/lib/presets";
 import { ControlManager } from "~/lib/controls";
-import { createMorphState, getNearestStop } from "~/lib/morph";
+import { createMorphState } from "~/lib/morph";
 import { loadModelPoints } from "~/lib/model-loader";
 import type { ModelData } from "~/lib/model-loader";
 import type { SystemSettings, ControlDef, InfoState } from "~/lib/types";
@@ -27,13 +26,6 @@ function initialPresetIndex(): number {
   if (!hash) return 0;
   const idx = presets.findIndex((p) => presetSlug(p.name) === hash);
   return idx >= 0 ? idx : 0;
-}
-
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Particle Visualizer" },
-    { name: "description", content: "3D particle swarm visualizer with morphing presets" },
-  ];
 }
 
 export default function Home() {
