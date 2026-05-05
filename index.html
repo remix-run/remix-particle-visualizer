@@ -51,10 +51,77 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap"
     />
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        background: #000000;
+        color-scheme: dark;
+        overflow: hidden;
+      }
+
+      .loading-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #000000;
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+      }
+
+      .loading-runner {
+        display: block;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+      }
+
+      .loading-text {
+        font-size: 0.85rem;
+        color: #555555;
+        animation: pulse-text 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse-text {
+        0%,
+        100% {
+          opacity: 0.4;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root">
       <div class="loading-screen">
+        <picture>
+          <source
+            media="(prefers-reduced-motion: reduce)"
+            srcset="%BASE_URL%landing/remix-runner-static.png"
+            type="image/png"
+          />
+          <source srcset="%BASE_URL%landing/remix-runner.avif" type="image/avif" />
+          <source srcset="%BASE_URL%landing/remix-runner.webp" type="image/webp" />
+          <img
+            class="loading-runner"
+            src="%BASE_URL%landing/remix-runner.gif"
+            alt=""
+            width="384"
+            height="384"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          />
+        </picture>
         <div class="loading-text">Initializing Particles...</div>
       </div>
     </div>

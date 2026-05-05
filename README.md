@@ -2,8 +2,8 @@
 
 A full-screen 3D particle visualizer powered by Remix, Vite, React, Tailwind CSS, and Three.js.
 
-The app stays a single-page browser experience. Remix owns the route contract and production
-Fetch-based server, while Vite builds and serves the React client.
+The app stays a single-page browser experience. Remix owns the route contract for local SPA
+fallback behavior, while Vite builds the static client that GitHub Pages serves.
 
 ## Getting Started
 
@@ -21,7 +21,7 @@ pnpm dev
 
 Your application will be available at `http://localhost:44100`.
 
-## Production
+## Preview
 
 Create a production build:
 
@@ -29,14 +29,13 @@ Create a production build:
 pnpm build
 ```
 
-Start the Remix server:
+Preview the static build locally:
 
 ```bash
-pnpm start
+pnpm preview
 ```
 
-The server listens on `PORT` or `3000` by default and serves `build/client` through Remix
-`fetch-router` middleware.
+The preview server serves `build/client` at `http://127.0.0.1:44100`.
 
 ## GitHub Pages
 

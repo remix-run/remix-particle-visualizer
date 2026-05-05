@@ -132,6 +132,7 @@ interface Props {
   morphValue: number;
   modelData: (ModelData | undefined)[];
   onFpsUpdate?: (fps: number) => void;
+  onReady?: () => void;
   labelsRef: React.MutableRefObject<ProjectedLabel[]>;
   labelOpacityRef: React.MutableRefObject<number>;
 }
@@ -144,6 +145,7 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
     morphValue,
     modelData,
     onFpsUpdate,
+    onReady,
     labelsRef,
     labelOpacityRef,
   },
@@ -161,6 +163,7 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
   const modelDataRef = useRef(modelData);
   const labelsRefInternal = useRef(labelsRef);
   const labelOpInternal = useRef(labelOpacityRef);
+  const onReadyRef = useRef(onReady);
 
   settingsRef.current = settings;
   presetsRef.current = presets;
@@ -169,6 +172,7 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
   modelDataRef.current = modelData;
   labelsRefInternal.current = labelsRef;
   labelOpInternal.current = labelOpacityRef;
+  onReadyRef.current = onReady;
 
   useImperativeHandle(ref, () => ({
     get engine() { return engineRef.current!; },
@@ -197,6 +201,7 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
     let frozenTime: number | null = null;
     let previousNearest = -1;
     let presetRuntimeData: PresetRuntimeData | null = null;
+    let didReportReady = false;
 
     let mouseNormX = 0;
     let mouseNormY = 0;
@@ -649,6 +654,11 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       }
 
       engine.render();
+
+      if (!didReportReady) {
+        didReportReady = true;
+        onReadyRef.current?.();
+      }
 
       if (onFpsUpdate) {
         fpsFrames.current.push(now);

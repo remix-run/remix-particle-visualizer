@@ -15,6 +15,7 @@ import LabelOverlay from "~/components/LabelOverlay";
 import type { ProjectedLabel } from "~/lib/label-projection";
 
 const ParticleCanvas = lazy(() => import("~/components/ParticleCanvas.client"));
+const MIN_STARTUP_LOADER_MS = 900;
 
 function presetSlug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -36,7 +37,9 @@ export default function Home() {
   const [hudInfo, setHudInfo] = useState<InfoState>({ title: "", description: "" });
   const [morphValue, setMorphValue] = useState(initialPresetIndex);
   const [modelsLoading, setModelsLoading] = useState(true);
-  const [loadingStatus, setLoadingStatus] = useState("Loading models...");
+  const [loadingStatus] = useState("Loading models...");
+  const [sceneReady, setSceneReady] = useState(false);
+  const [minimumLoaderElapsed, setMinimumLoaderElapsed] = useState(false);
   const labelOpacityRef = useRef(0);
 
   const controlMgrRef = useRef(new ControlManager());
@@ -46,6 +49,14 @@ export default function Home() {
 
   const animRef = useRef<{ target: number; raf: number } | null>(null);
   const handlePresetClickRef = useRef<(idx: number) => void>(() => {});
+
+  useEffect(() => {
+    const id = window.setTimeout(
+      () => setMinimumLoaderElapsed(true),
+      MIN_STARTUP_LOADER_MS,
+    );
+    return () => window.clearTimeout(id);
+  }, []);
 
   useEffect(() => {
     morphStateRef.current.value = morphValue;
@@ -219,6 +230,10 @@ export default function Home() {
     controlMgrRef.current.setControlValue(id, value);
   }, []);
 
+  const handleSceneReady = useCallback(() => {
+    setSceneReady(true);
+  }, []);
+
   const [introDone, setIntroDone] = useState(false);
   useEffect(() => {
     const id = setTimeout(() => setIntroDone(true), 3000);
@@ -290,12 +305,15 @@ export default function Home() {
     return () => cancelAnimationFrame(glowRafRef.current);
   }, [settings.colorMode, settings.glowIntensity]);
 
+  const showStartupLoader = modelsLoading || !sceneReady || !minimumLoaderElapsed;
+  const loaderMessage = modelsLoading ? loadingStatus : "Initializing Particles...";
+
   if (modelsLoading) {
     return (
       <div className="visualizer-root">
         <div className="loading-screen">
           <LoaderRunner />
-          <div className="loading-text">{loadingStatus}</div>
+          <div className="loading-text">{loaderMessage}</div>
         </div>
       </div>
     );
@@ -311,6 +329,7 @@ export default function Home() {
           morphValue={morphValue}
           modelData={modelDataRef.current}
           onFpsUpdate={setFps}
+          onReady={handleSceneReady}
           labelsRef={projectedLabelsRef}
           labelOpacityRef={labelOpacityRef}
         />
@@ -354,6 +373,13 @@ export default function Home() {
             onValueChange={handleMorphChange}
             onPresetClick={handlePresetClick}
           />
+        </div>
+      )}
+
+      {showStartupLoader && (
+        <div className="loading-screen">
+          <LoaderRunner />
+          <div className="loading-text">{loaderMessage}</div>
         </div>
       )}
     </div>

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build && tsc",
     "dev": "vite",
-    "start": "tsx server.ts",
+    "preview": "vite preview --host 127.0.0.1 --port 44100",
     "typecheck": "tsc",
     "bake": "tsx scripts/bake-models.ts"
   },
