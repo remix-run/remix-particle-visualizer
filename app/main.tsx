@@ -1,4 +1,4 @@
-import { createRoot } from "react-dom/client";
+import { createRoot } from "remix/ui";
 
 import Home from "~/routes/home";
 
@@ -11,4 +11,5 @@ if (!rootElement) {
   throw new Error("Missing root element");
 }
 
+rootElement.replaceChildren();
 createRoot(rootElement).render(<Home />);

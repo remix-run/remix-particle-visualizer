@@ -6,7 +6,7 @@ const runnerGif = publicAssetPath("landing/remix-runner.gif");
 const runnerStatic = publicAssetPath("landing/remix-runner-static.png");
 
 export default function LoaderRunner() {
-  return (
+  return () => (
     <picture>
       <source media="(prefers-reduced-motion: reduce)" srcSet={runnerStatic} type="image/png" />
       <source srcSet={runnerAvif} type="image/avif" />

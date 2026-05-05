@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from "react";
+import { on, ref, type Handle } from "remix/ui";
 import type { Preset } from "~/lib/types";
 
 interface Props {
@@ -9,97 +9,95 @@ interface Props {
   disabled?: boolean;
 }
 
-export default function MorphSlider({
-  presets,
-  value,
-  onValueChange,
-  onPresetClick,
-  disabled,
-}: Props) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
+export default function MorphSlider(handle: Handle<Props>) {
+  let track: HTMLDivElement | null = null;
+  let dragging = false;
 
-  const maxValue = presets.length - 1;
+  const valueFromEvent = (event: MouseEvent) => {
+    if (!track) return handle.props.value;
 
-  const valueFromEvent = useCallback(
-    (e: MouseEvent | React.MouseEvent) => {
-      const track = trackRef.current;
-      if (!track) return value;
-      const rect = track.getBoundingClientRect();
-      const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-      return y * maxValue;
-    },
-    [value, maxValue],
-  );
+    const maxValue = handle.props.presets.length - 1;
+    const rect = track.getBoundingClientRect();
+    const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+    return y * maxValue;
+  };
 
-  const handlePointerDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (disabled) return;
-      dragging.current = true;
-      onValueChange(valueFromEvent(e));
-      e.preventDefault();
-    },
-    [disabled, onValueChange, valueFromEvent],
-  );
+  const handlePointerDown = (event: MouseEvent) => {
+    if (handle.props.disabled) return;
+    dragging = true;
+    handle.props.onValueChange(valueFromEvent(event));
+    event.preventDefault();
+  };
 
-  useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      if (!dragging.current) return;
-      onValueChange(valueFromEvent(e));
-    };
-    const handleUp = () => {
-      dragging.current = false;
-    };
+  const handleMove = (event: MouseEvent) => {
+    if (!dragging) return;
+    handle.props.onValueChange(valueFromEvent(event));
+  };
+  const handleUp = () => {
+    dragging = false;
+  };
+
+  if (typeof window !== "undefined") {
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleUp);
-    return () => {
+    handle.signal.addEventListener("abort", () => {
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
-    };
-  }, [onValueChange, valueFromEvent]);
+    });
+  }
 
-  const pct = (value / maxValue) * 100;
+  return () => {
+    const { presets, value, onPresetClick, disabled } = handle.props;
+    const maxValue = presets.length - 1;
+    const pct = (value / maxValue) * 100;
 
-  return (
-    <div className="morph-slider-container">
-      <div className="morph-track-area">
-        <div
-          ref={trackRef}
-          className="morph-track"
-          onMouseDown={handlePointerDown}
-          style={{ opacity: disabled ? 0.4 : 1, pointerEvents: disabled ? "none" : "auto" }}
-        >
-          <div className="morph-track-fill" style={{ top: -5, height: `calc(${pct}% + 10px)` }} />
-          <div className="morph-thumb" style={{ top: `${pct}%` }} />
-          {presets.map((_, stop) => (
-            <div
-              key={stop}
-              className={`morph-stop ${Math.abs(value - stop) < 0.05 ? "morph-stop-active" : ""}`}
-              style={{ top: `${(stop / maxValue) * 100}%` }}
-            />
-          ))}
-        </div>
+    return (
+      <div className="morph-slider-container">
+        <div className="morph-track-area">
+          <div
+            mix={[
+              ref((node) => {
+                track = node;
+              }),
+              on<HTMLDivElement, "mousedown">("mousedown", handlePointerDown),
+            ]}
+            className="morph-track"
+            style={{ opacity: disabled ? 0.4 : 1, pointerEvents: disabled ? "none" : "auto" }}
+          >
+            <div className="morph-track-fill" style={{ top: -5, height: `calc(${pct}% + 10px)` }} />
+            <div className="morph-thumb" style={{ top: `${pct}%` }} />
+            {presets.map((_, stop) => (
+              <div
+                key={stop}
+                className={`morph-stop ${Math.abs(value - stop) < 0.05 ? "morph-stop-active" : ""}`}
+                style={{ top: `${(stop / maxValue) * 100}%` }}
+              />
+            ))}
+          </div>
 
-        <div className="morph-labels">
-          {presets.map((p, idx) => {
-            const dist = Math.abs(value - idx);
-            const active = dist < 0.3;
-            return (
-              <button
-                key={p.name}
-                className={`morph-label ${active ? "morph-label-active" : ""}`}
-                onClick={() => !disabled && onPresetClick(idx)}
-                style={{
-                  opacity: disabled ? 0.4 : 1,
-                  top: `${(idx / maxValue) * 100}%`,
-                }}
-              >
-                {p.name}
-              </button>
-            );
-          })}
+          <div className="morph-labels">
+            {presets.map((preset, idx) => {
+              const dist = Math.abs(value - idx);
+              const active = dist < 0.3;
+              return (
+                <button
+                  key={preset.name}
+                  className={`morph-label ${active ? "morph-label-active" : ""}`}
+                  mix={on("click", () => {
+                    if (!disabled) onPresetClick(idx);
+                  })}
+                  style={{
+                    opacity: disabled ? 0.4 : 1,
+                    top: `${(idx / maxValue) * 100}%`,
+                  }}
+                >
+                  {preset.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 }

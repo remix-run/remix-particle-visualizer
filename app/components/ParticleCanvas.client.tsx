@@ -1,4 +1,4 @@
-import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+import { ref, type Handle } from "remix/ui";
 import { Matrix4, Vector3 } from "three";
 import { Engine } from "~/lib/engine";
 import { ParticleSystem } from "~/lib/particles";
@@ -120,9 +120,8 @@ function buildPresetRuntimeData(presets: Preset[]): PresetRuntimeData {
   };
 }
 
-export interface CanvasHandle {
-  engine: Engine;
-  particles: ParticleSystem;
+interface MutableRef<T> {
+  current: T;
 }
 
 interface Props {
@@ -133,53 +132,50 @@ interface Props {
   modelData: (ModelData | undefined)[];
   onFpsUpdate?: (fps: number) => void;
   onReady?: () => void;
-  labelsRef: React.MutableRefObject<ProjectedLabel[]>;
-  labelOpacityRef: React.MutableRefObject<number>;
+  labelsRef: MutableRef<ProjectedLabel[]>;
+  labelOpacityRef: MutableRef<number>;
 }
 
-const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
-  {
-    settings,
-    controlMgr,
-    presets,
-    morphValue,
-    modelData,
-    onFpsUpdate,
-    onReady,
-    labelsRef,
-    labelOpacityRef,
-  },
-  ref,
-) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const engineRef = useRef<Engine | null>(null);
-  const particlesRef = useRef<ParticleSystem | null>(null);
-  const settingsRef = useRef(settings);
-  const presetsRef = useRef(presets);
-  const morphValueRef = useRef(morphValue);
-  const fpsFrames = useRef<number[]>([]);
-  const controlMgrRef = useRef(controlMgr);
-  const modelDataRef = useRef(modelData);
-  const labelsRefInternal = useRef(labelsRef);
-  const labelOpInternal = useRef(labelOpacityRef);
-  const onReadyRef = useRef(onReady);
+export default function ParticleCanvas(handle: Handle<Props>) {
+  const containerRef: MutableRef<HTMLDivElement | null> = { current: null };
+  const canvasRef: MutableRef<HTMLCanvasElement | null> = { current: null };
+  const engineRef: MutableRef<Engine | null> = { current: null };
+  const particlesRef: MutableRef<ParticleSystem | null> = { current: null };
+  const settingsRef: MutableRef<SystemSettings> = { current: handle.props.settings };
+  const presetsRef: MutableRef<Preset[]> = { current: handle.props.presets };
+  const morphValueRef: MutableRef<number> = { current: handle.props.morphValue };
+  const fpsFrames: MutableRef<number[]> = { current: [] };
+  const controlMgrRef: MutableRef<ControlManager> = { current: handle.props.controlMgr };
+  const modelDataRef: MutableRef<(ModelData | undefined)[]> = { current: handle.props.modelData };
+  const labelsRefInternal: MutableRef<MutableRef<ProjectedLabel[]>> = { current: handle.props.labelsRef };
+  const labelOpInternal: MutableRef<MutableRef<number>> = { current: handle.props.labelOpacityRef };
+  const onReadyRef: MutableRef<Props["onReady"]> = { current: handle.props.onReady };
+  const onFpsUpdateRef: MutableRef<Props["onFpsUpdate"]> = { current: handle.props.onFpsUpdate };
 
-  settingsRef.current = settings;
-  presetsRef.current = presets;
-  morphValueRef.current = morphValue;
-  controlMgrRef.current = controlMgr;
-  modelDataRef.current = modelData;
-  labelsRefInternal.current = labelsRef;
-  labelOpInternal.current = labelOpacityRef;
-  onReadyRef.current = onReady;
+  let cleanupRenderer: (() => void) | undefined;
+  let initializedParticleCount: number | undefined;
 
-  useImperativeHandle(ref, () => ({
-    get engine() { return engineRef.current!; },
-    get particles() { return particlesRef.current!; },
-  }));
+  const syncProps = () => {
+    settingsRef.current = handle.props.settings;
+    presetsRef.current = handle.props.presets;
+    morphValueRef.current = handle.props.morphValue;
+    controlMgrRef.current = handle.props.controlMgr;
+    modelDataRef.current = handle.props.modelData;
+    labelsRefInternal.current = handle.props.labelsRef;
+    labelOpInternal.current = handle.props.labelOpacityRef;
+    onReadyRef.current = handle.props.onReady;
+    onFpsUpdateRef.current = handle.props.onFpsUpdate;
+  };
 
-  useEffect(() => {
+  const disposeRenderer = () => {
+    cleanupRenderer?.();
+    cleanupRenderer = undefined;
+    initializedParticleCount = undefined;
+  };
+
+  const initRenderer = () => {
+    if (cleanupRenderer || !canvasRef.current || !containerRef.current) return;
+
     const canvas = canvasRef.current!;
     const container = containerRef.current!;
     const engine = new Engine();
@@ -660,6 +656,7 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
         onReadyRef.current?.();
       }
 
+      const onFpsUpdate = onFpsUpdateRef.current;
       if (onFpsUpdate) {
         fpsFrames.current.push(now);
         const cutoff = now - 1000;
@@ -672,9 +669,15 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       frameId = requestAnimationFrame(animate);
     };
 
+    if (particles && restBakerRefs.current && mouseSimRefs.current && !didReportReady) {
+      didReportReady = true;
+      onReadyRef.current?.();
+    }
+
+    initializedParticleCount = settingsRef.current.particleCount;
     frameId = requestAnimationFrame(animate);
 
-    return () => {
+    cleanupRenderer = () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("mousemove", onMouseMove);
@@ -686,13 +689,39 @@ const ParticleCanvas = forwardRef<CanvasHandle, Props>(function ParticleCanvas(
       engineRef.current = null;
       particlesRef.current = null;
     };
-  }, [settings.particleCount]); // eslint-disable-line react-hooks/exhaustive-deps
+  };
 
-  return (
-    <div ref={containerRef} className="absolute inset-0">
-      <canvas ref={canvasRef} className="block w-full h-full" />
-    </div>
-  );
-});
+  handle.signal.addEventListener("abort", disposeRenderer);
 
-export default ParticleCanvas;
+  return () => {
+    syncProps();
+
+    if (
+      cleanupRenderer &&
+      initializedParticleCount !== settingsRef.current.particleCount
+    ) {
+      handle.queueTask(() => {
+        disposeRenderer();
+        initRenderer();
+      });
+    } else {
+      handle.queueTask(initRenderer);
+    }
+
+    return (
+      <div
+        mix={ref((node) => {
+          containerRef.current = node;
+        })}
+        className="absolute inset-0"
+      >
+        <canvas
+          mix={ref((node) => {
+            canvasRef.current = node;
+          })}
+          className="block w-full h-full"
+        />
+      </div>
+    );
+  };
+}

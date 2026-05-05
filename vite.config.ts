@@ -1,79 +1,66 @@
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { normalize, relative, resolve } from "node:path";
 
-import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, type Connect, type Plugin, type ResolvedConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-import { createSpaRouter } from "./app/remix/router";
+const base = process.env.BASE_PATH ?? "/";
 
-function normalizeBase(base: string): string {
-  const trimmedBase = base.trim();
-  if (!trimmedBase || trimmedBase === "/") return "/";
+function preserveAssetNotFound(): Plugin {
+  const middleware = (config: ResolvedConfig): Connect.NextHandleFunction => (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      next();
+      return;
+    }
 
-  return `/${trimmedBase.replace(/^\/+|\/+$/g, "")}/`;
-}
+    let pathname = req.url ? new URL(req.url, "http://localhost").pathname : "";
+    if (config.base !== "/" && pathname.startsWith(config.base)) {
+      pathname = pathname.slice(config.base.length - 1);
+    }
 
-function deploymentBase(): string {
-  return normalizeBase(process.env.BASE_PATH ?? "/");
-}
+    if (/\.[^/]+$/.test(pathname)) {
+      const relativePath = pathname.replace(/^\/+/, "");
+      const candidates = [
+        resolve(config.publicDir, relativePath),
+        resolve(config.root, relativePath),
+        resolve(config.root, config.build.outDir, relativePath),
+      ];
+      const hasFile = candidates.some((candidate) => {
+        const isInsideRoot = !relative(config.root, candidate).startsWith("..");
+        return isInsideRoot && existsSync(normalize(candidate));
+      });
 
-function requestHeaders(rawHeaders: string[]): Headers {
-  const headers = new Headers();
+      if (hasFile) {
+        next();
+        return;
+      }
 
-  for (let i = 0; i < rawHeaders.length; i += 2) {
-    headers.append(rawHeaders[i], rawHeaders[i + 1]);
-  }
+      res.statusCode = 404;
+      res.end("Not Found");
+      return;
+    }
 
-  return headers;
-}
+    next();
+  };
 
-function remixSpaFallback(): Plugin {
   return {
-    name: "remix-spa-fallback",
+    name: "preserve-asset-not-found",
     configureServer(server) {
-      return () => {
-        const router = createSpaRouter({
-          async renderIndex(request) {
-            const pathname = new URL(request.url).pathname;
-            const template = await readFile(resolve(server.config.root, "index.html"), "utf8");
-
-            return server.transformIndexHtml(pathname, template);
-          },
-        });
-
-        server.middlewares.use(async (req, res, next) => {
-          if (!req.url || !req.method) return next();
-
-          const host = req.headers.host ?? "localhost";
-          const request = new Request(new URL(req.url, `http://${host}`), {
-            method: req.method,
-            headers: requestHeaders(req.rawHeaders),
-          });
-
-          const response = await router.fetch(request);
-          if (response.status === 404) return next();
-
-          res.statusCode = response.status;
-          response.headers.forEach((value, name) => {
-            res.setHeader(name, value);
-          });
-
-          if (req.method === "HEAD" || !response.body) {
-            res.end();
-            return;
-          }
-
-          res.end(await response.text());
-        });
-      };
+      server.middlewares.use(middleware(server.config));
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(middleware(server.config));
     },
   };
 }
 
 export default defineConfig({
-  base: deploymentBase(),
+  base: base.endsWith("/") ? base : `${base}/`,
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "remix/ui",
+  },
   server: {
     port: 44100,
     strictPort: true,
@@ -81,5 +68,5 @@ export default defineConfig({
   build: {
     outDir: "build/client",
   },
-  plugins: [tailwindcss(), react(), tsconfigPaths(), remixSpaFallback()],
+  plugins: [tailwindcss(), tsconfigPaths(), preserveAssetNotFound()],
 });
