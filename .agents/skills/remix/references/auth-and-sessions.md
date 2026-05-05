@@ -29,7 +29,7 @@ cookie-shaped fact and do not need `Session` helpers.
 If a malicious user editing the value would be a bug, or if the value needs server-managed
 lifecycle, reach for a session.
 
-### Quick Storage
+### Quick chooser
 
 | Need                                                                | Best fit        | Why                                                |
 | ------------------------------------------------------------------- | --------------- | -------------------------------------------------- |
@@ -123,21 +123,21 @@ trial, which feature flags a tester opted into, what items are in a cart.
 
 ```typescript
 async function submit({ get }) {
-  let session = get(Session);
-  if (session.get("hasSubmitted")) {
-    return render(<AlreadySubmittedPage />, { status: 409 });
+  let session = get(Session)
+  if (session.get('hasSubmitted')) {
+    return render(<AlreadySubmittedPage />, { status: 409 })
   }
 
-  let parsed = s.parseSafe(submitSchema, get(FormData));
+  let parsed = s.parseSafe(submitSchema, get(FormData))
   if (!parsed.success) {
-    return render(<SubmitPage errors={parsed.issues} />, { status: 400 });
+    return render(<SubmitPage errors={parsed.issues} />, { status: 400 })
   }
 
-  await saveSubmission(parsed.value);
-  session.set("hasSubmitted", true);
-  session.flash("message", "Thanks for submitting!");
+  await saveSubmission(parsed.value)
+  session.set('hasSubmitted', true)
+  session.flash('message', 'Thanks for submitting!')
 
-  return redirect(routes.thanks.href());
+  return redirect(routes.thanks.href())
 }
 ```
 
@@ -401,15 +401,15 @@ export default {
 Apply middleware to a single route:
 
 ```typescript
-import { Auth, requireAuth } from "remix/auth-middleware";
+import { Auth, requireAuth } from 'remix/auth-middleware'
 
 router.get(routes.account, {
   middleware: [requireAuth()],
   handler(context) {
-    let auth = context.get(Auth);
-    return render(<AccountPage identity={auth.identity} />);
+    let auth = context.get(Auth)
+    return render(<AccountPage identity={auth.identity} />)
   },
-});
+})
 ```
 
 ### Redirect on auth failure

@@ -2,7 +2,7 @@ export const COPY_PROMPT = `Build a full-screen 3D particle visualizer web app w
 
 ## Stack
 
-- Remix fetch-router server with a Vite React single-page app
+- Remix UI mounted from a Vite \`index.html\` single-page app
 - Tailwind CSS v4 (for base reset / fonts only; all visualizer UI uses plain CSS)
 - Three.js for WebGL rendering
 - TypeScript throughout

@@ -1,3 +1,4 @@
+import { on, type Handle } from "remix/ui";
 import type { ControlDef } from "~/lib/types";
 import { sliderFillStyle } from "~/lib/ui-utils";
 
@@ -16,51 +17,57 @@ function parseBinaryControl(ctrl: ControlDef): { label: string; options: [string
   return { label: label || ctrl.label, options: [first.trim(), parts[1].trim()] };
 }
 
-export default function ControlPanel({ controls, onControlChange }: Props) {
-  if (controls.length === 0) return null;
+export default function ControlPanel(handle: Handle<Props>) {
+  return () => {
+    const { controls, onControlChange } = handle.props;
 
-  return (
-    <div className="control-panel">
-      <div className="panel-header">Visualization Controls</div>
-      {controls.map((ctrl) => {
-        const binary = parseBinaryControl(ctrl);
-        if (binary) {
+    if (controls.length === 0) return null;
+
+    return (
+      <div className="control-panel">
+        <div className="panel-header">Visualization Controls</div>
+        {controls.map((ctrl) => {
+          const binary = parseBinaryControl(ctrl);
+          if (binary) {
+            return (
+              <div key={ctrl.id} className="control-row">
+                <label className="control-label">{binary.label}</label>
+                <div className="segmented-toggle">
+                  {binary.options.map((opt, idx) => (
+                    <button
+                      key={idx}
+                      className={`segmented-btn ${Math.round(ctrl.value) === idx ? "segmented-active" : ""}`}
+                      mix={on("click", () => onControlChange(ctrl.id, idx))}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          }
           return (
             <div key={ctrl.id} className="control-row">
-              <label className="control-label">{binary.label}</label>
-              <div className="segmented-toggle">
-                {binary.options.map((opt, idx) => (
-                  <button
-                    key={idx}
-                    className={`segmented-btn ${Math.round(ctrl.value) === idx ? "segmented-active" : ""}`}
-                    onClick={() => onControlChange(ctrl.id, idx)}
-                  >
-                    {opt}
-                  </button>
-                ))}
+              <label className="control-label">{ctrl.label}</label>
+              <div className="control-slider-row">
+                <input
+                  type="range"
+                  min={ctrl.min}
+                  max={ctrl.max}
+                  step={(ctrl.max - ctrl.min) / 200}
+                  value={ctrl.value}
+                  mix={on<HTMLInputElement>("input", (event) =>
+                    onControlChange(ctrl.id, parseFloat(event.currentTarget.value)),
+                  )}
+                  className="control-slider"
+                  style={sliderFillStyle(ctrl.value, ctrl.min, ctrl.max)}
+                />
+                <span className="control-value">{ctrl.value.toFixed(2)}</span>
               </div>
             </div>
           );
-        }
-        return (
-          <div key={ctrl.id} className="control-row">
-            <label className="control-label">{ctrl.label}</label>
-            <div className="control-slider-row">
-              <input
-                type="range"
-                min={ctrl.min}
-                max={ctrl.max}
-                step={(ctrl.max - ctrl.min) / 200}
-                value={ctrl.value}
-                onChange={(e) => onControlChange(ctrl.id, parseFloat(e.target.value))}
-                className="control-slider"
-                style={sliderFillStyle(ctrl.value, ctrl.min, ctrl.max)}
-              />
-              <span className="control-value">{ctrl.value.toFixed(2)}</span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+        })}
+      </div>
+    );
+  };
 }

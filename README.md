@@ -1,9 +1,9 @@
 # Remix Particle Visualizer
 
-A full-screen 3D particle visualizer powered by Remix, Vite, React, Tailwind CSS, and Three.js.
+A full-screen 3D particle visualizer powered by Remix, Vite, Tailwind CSS, and Three.js.
 
-The app stays a single-page browser experience. Remix owns the route contract for local SPA
-fallback behavior, while Vite builds the static client that GitHub Pages serves.
+The app stays a single-page browser experience. Vite uses `index.html` as the entry point, and
+Remix UI mounts the visualizer into `#root`.
 
 ## Getting Started
 
@@ -13,7 +13,7 @@ Install dependencies:
 pnpm install
 ```
 
-Start the Vite development server with the Remix SPA fallback:
+Start the Vite development server:
 
 ```bash
 pnpm dev
@@ -41,7 +41,7 @@ The preview server serves `build/client` at `http://127.0.0.1:44100`.
 
 Pushes to `main` deploy through the `Deploy GitHub Pages` workflow. The workflow uses
 GitHub's Pages Actions to configure the site, build with the Pages base path, add `404.html`
-for SPA fallback behavior, upload `build/client`, and publish the artifact.
+as a static fallback, upload `build/client`, and publish the artifact.
 
 ## Model Assets
 

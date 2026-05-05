@@ -343,7 +343,7 @@ what it exports. Open the linked reference file when you need full examples.
 - `remix/test` — `describe`, `it`, and lifecycle hooks. Use as the test framework
 - `remix/test/cli` — programmatic test runner APIs such as `runRemixTest`
 - `remix/cli` — programmatic Remix CLI API. Use the `remix` executable for project commands such
-  as `remix test`, `remix routes`, and `remix doctor`
+  as `remix test`, `remix routes`, `remix skills`, and `remix doctor`
 - `remix/assert` — assertion helpers. Use in place of `node:assert` so messages render cleanly
   in the runner
 - `remix/terminal` — ANSI styles, color detection, style factories, and testable terminal streams.
@@ -377,26 +377,26 @@ export const routes = route({
 ### Type controllers against the route contract
 
 ```typescript
-import type { Controller } from "remix/fetch-router";
+import type { Controller } from 'remix/fetch-router'
 
-import type { AppContext } from "../router.ts";
-import { routes } from "../routes.ts";
+import type { AppContext } from '../router.ts'
+import { routes } from '../routes.ts'
 
 export default {
   actions: {
     async index({ get }) {
-      let db = get(Database);
-      let allBooks = await db.findMany(books, { orderBy: ["id", "asc"] });
-      return render(<BooksIndexPage allBooks={allBooks} />);
+      let db = get(Database)
+      let allBooks = await db.findMany(books, { orderBy: ['id', 'asc'] })
+      return render(<BooksIndexPage allBooks={allBooks} />)
     },
     async show({ get, params }) {
-      let db = get(Database);
-      let book = await db.findOne(books, { where: { slug: params.slug } });
-      if (!book) return new Response("Not Found", { status: 404 });
-      return render(<BookShowPage book={book} />);
+      let db = get(Database)
+      let book = await db.findOne(books, { where: { slug: params.slug } })
+      if (!book) return new Response('Not Found', { status: 404 })
+      return render(<BookShowPage book={book} />)
     },
   },
-} satisfies Controller<typeof routes.books, AppContext>;
+} satisfies Controller<typeof routes.books, AppContext>
 ```
 
 ### Compose middleware deliberately
@@ -439,38 +439,38 @@ middleware.push(loadAuth());
 let router = createRouter({ middleware });
 ```
 
-### Validate, mutate, and respond
+### Mutate, validate, and respond
 
 ```typescript
-import { redirect } from "remix/response/redirect";
-import * as s from "remix/data-schema";
-import * as f from "remix/data-schema/form-data";
-import { Session } from "remix/session";
-import { Database } from "remix/data-table";
+import { redirect } from 'remix/response/redirect'
+import * as s from 'remix/data-schema'
+import * as f from 'remix/data-schema/form-data'
+import { Session } from 'remix/session'
+import { Database } from 'remix/data-table'
 
 let bookSchema = f.object({
   slug: f.field(s.string()),
   title: f.field(s.string()),
-});
+})
 
 export default {
   actions: {
     async create({ get }) {
-      let parsed = s.parseSafe(bookSchema, get(FormData));
+      let parsed = s.parseSafe(bookSchema, get(FormData))
       if (!parsed.success) {
-        return render(<NewBookPage errors={parsed.issues} />, { status: 400 });
+        return render(<NewBookPage errors={parsed.issues} />, { status: 400 })
       }
 
-      let db = get(Database);
-      let book = await db.create(books, parsed.value);
+      let db = get(Database)
+      let book = await db.create(books, parsed.value)
 
-      let session = get(Session);
-      session.flash("message", `Added ${book.title}.`);
+      let session = get(Session)
+      session.flash('message', `Added ${book.title}.`)
 
-      return redirect(routes.books.show.href({ slug: book.slug }));
+      return redirect(routes.books.show.href({ slug: book.slug }))
     },
   },
-} satisfies Controller<typeof routes.books, AppContext>;
+} satisfies Controller<typeof routes.books, AppContext>
 ```
 
 This shape works without JavaScript, returns a `Response` for every outcome, and is ready for
