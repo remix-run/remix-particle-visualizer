@@ -1,5 +1,13 @@
-import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import {
+  Color,
+  HalfFloatType,
+  PerspectiveCamera,
+  Scene,
+  Vector2,
+  Vector3,
+  WebGLRenderer,
+  WebGLRenderTarget,
+} from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
@@ -12,21 +20,29 @@ function screenScale(width: number): number {
 }
 
 export class Engine {
-  renderer!: THREE.WebGLRenderer;
-  scene!: THREE.Scene;
-  camera!: THREE.PerspectiveCamera;
-  controls!: OrbitControls;
+  renderer!: WebGLRenderer;
+  scene!: Scene;
+  camera!: PerspectiveCamera;
+  controls!: CameraTargetControls;
   composer!: EffectComposer;
   afterImagePass!: AfterimagePass;
   bloomPass!: UnrealBloomPass;
 
   private resizeObserver: ResizeObserver | null = null;
   private containerWidth = 1440;
+  private lastAppliedSettings: SystemSettings | null = null;
+  private lastAppliedWidth = -1;
+  private clearColor = new Color();
+
+  invalidateSettings() {
+    this.lastAppliedSettings = null;
+    this.lastAppliedWidth = -1;
+  }
 
   init(canvas: HTMLCanvasElement, container: HTMLElement, settings: SystemSettings) {
-    this.scene = new THREE.Scene();
+    this.scene = new Scene();
 
-    this.camera = new THREE.PerspectiveCamera(
+    this.camera = new PerspectiveCamera(
       settings.cameraFov,
       container.clientWidth / container.clientHeight,
       0.1,
@@ -34,24 +50,27 @@ export class Engine {
     );
     this.camera.position.set(0, 30, 80);
 
-    this.renderer = new THREE.WebGLRenderer({
+    this.renderer = new WebGLRenderer({
       canvas,
       antialias: false,
       alpha: false,
+      depth: false,
+      stencil: false,
+      powerPreference: "high-performance",
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.setClearColor(new THREE.Color(settings.backgroundColor));
+    this.clearColor.set(settings.backgroundColor);
+    this.renderer.setClearColor(this.clearColor);
 
-    this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
-    this.controls.rotateSpeed = 0.5;
-    this.controls.enableZoom = false;
-    this.controls.minDistance = 5;
-    this.controls.maxDistance = 500;
+    this.controls = new CameraTargetControls(this.camera);
 
-    this.composer = new EffectComposer(this.renderer);
+    const composerTarget = new WebGLRenderTarget(1, 1, {
+      type: HalfFloatType,
+      depthBuffer: false,
+      stencilBuffer: false,
+    });
+    this.composer = new EffectComposer(this.renderer, composerTarget);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
     this.afterImagePass = new AfterimagePass(settings.trailIntensity);
@@ -59,7 +78,7 @@ export class Engine {
 
     this.containerWidth = container.clientWidth;
     const s = screenScale(this.containerWidth);
-    const bloomSize = new THREE.Vector2(container.clientWidth, container.clientHeight);
+    const bloomSize = new Vector2(container.clientWidth, container.clientHeight);
     this.bloomPass = new UnrealBloomPass(bloomSize, settings.bloomStrength * s, 0.4, settings.bloomThreshold);
     this.composer.addPass(this.bloomPass);
 
@@ -82,9 +101,18 @@ export class Engine {
   }
 
   updateSettings(settings: SystemSettings) {
+    if (
+      settings === this.lastAppliedSettings &&
+      this.containerWidth === this.lastAppliedWidth
+    ) {
+      return;
+    }
+    this.lastAppliedSettings = settings;
+    this.lastAppliedWidth = this.containerWidth;
+
     const s = screenScale(this.containerWidth);
-    this.renderer.setClearColor(new THREE.Color(settings.backgroundColor));
-    this.afterImagePass.uniforms['damp'].value = settings.trailIntensity;
+    this.clearColor.set(settings.backgroundColor);
+    this.renderer.setClearColor(this.clearColor);
     this.bloomPass.strength = settings.bloomStrength * s;
     this.bloomPass.threshold = settings.bloomThreshold;
 
@@ -101,8 +129,21 @@ export class Engine {
 
   dispose() {
     this.resizeObserver?.disconnect();
-    this.controls.dispose();
-    this.renderer.dispose();
-    this.composer.dispose();
+    this.controls?.dispose();
+    this.renderer?.dispose();
+    this.composer?.dispose();
   }
+}
+
+class CameraTargetControls {
+  target = new Vector3();
+  enabled = true;
+
+  constructor(private camera: PerspectiveCamera) {}
+
+  update() {
+    this.camera.lookAt(this.target);
+  }
+
+  dispose() {}
 }

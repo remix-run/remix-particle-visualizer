@@ -3,6 +3,7 @@ import type { Preset } from "./types";
 
 const remixLogo: Preset = {
   name: "Remix Logo",
+  shaderId: "remixLogo",
   modelUrl: publicAssetPath("models/remix-logo.pts"),
   modelSlot: 4,
   glowColor: [0.3, 0.35, 0.55],
@@ -19,6 +20,7 @@ const remixLogo: Preset = {
 
 const websiteMockups: Preset = {
   name: "Website Mockups",
+  shaderId: "mockups",
   modelUrl: publicAssetPath("models/mockup-websites.pts"),
   modelSlot: 0,
   glowColor: [0.3, 0.35, 0.55],
@@ -35,6 +37,7 @@ const websiteMockups: Preset = {
 
 const racecar: Preset = {
   name: "Racecar",
+  shaderId: "racecar",
   modelUrl: publicAssetPath("models/racecar.pts"),
   modelSlot: 1,
   glowColor: [0.3, 0.35, 0.55],
@@ -55,6 +58,7 @@ const racecar: Preset = {
 
 const racetrack: Preset = {
   name: "Racetrack",
+  shaderId: "racetrack",
   cameraPosition: [-0.80, -18.60, 81.40],
   cameraTarget: [0, -4.20, -30],
   glowColor: [0.15, 0.25, 0.08],
@@ -81,6 +85,7 @@ const racetrack: Preset = {
 
 const runner: Preset = {
   name: "Model Kit Runner",
+  shaderId: "runner",
   modelUrl: publicAssetPath("models/model-kit-runner.pts"),
   modelSlot: 2,
   glowColor: [0.3, 0.35, 0.55],
@@ -100,6 +105,7 @@ const runner: Preset = {
 
 const underTheHood: Preset = {
   name: "Under The Hood",
+  shaderId: "racecar",
   modelUrl: publicAssetPath("models/racecar.pts"),
   modelSlot: 1,
   cameraPosition: [0, 12, -55],
@@ -116,6 +122,7 @@ const underTheHood: Preset = {
 
 const drive: Preset = {
   name: "Drive",
+  shaderId: "racetrackCar",
   modelUrl: publicAssetPath("models/racecar-drive.pts"),
   modelSlot: 3,
   cameraPosition: [-0.80, -18.60, 81.40],

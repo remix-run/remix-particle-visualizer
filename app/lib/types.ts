@@ -27,8 +27,17 @@ export interface PresetLabelDef {
   offset: [number, number];
 }
 
+export type ShaderId =
+  | "racetrack"
+  | "racecar"
+  | "runner"
+  | "remixLogo"
+  | "mockups"
+  | "racetrackCar";
+
 export interface Preset {
   name: string;
+  shaderId: ShaderId;
   modelUrl?: string;
   modelSlot?: number;
   cameraPosition?: [number, number, number];
