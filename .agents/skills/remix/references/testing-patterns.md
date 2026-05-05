@@ -1,158 +1,103 @@
-# Testing
+# UI Testing Patterns
 
 ## What This Covers
 
-How to test the two layers most Remix code lives in: HTTP behavior and DOM behavior. Read this when
-the task involves:
+Testing Remix UI components and browser-owned behavior:
 
-- Driving the router with `router.fetch(new Request(...))` and asserting on the returned `Response`
-- Building a fresh router per test for session, storage, or database isolation
-- Rendering components into a real DOM with `render(...)` or `createRoot(...)`
-- Configuring `remix test` discovery, excludes, and coverage
-- Choosing which layer to test for a given behavior
+- Rendering components with `createRoot`
+- Interacting with real DOM elements
+- Flushing updates with `root.flush()`
+- Testing timers, global listeners, and cleanup
+- Choosing between unit-style component tests and served-app verification
 
-For session and auth test setup, see `auth-and-sessions.md`. For component lifecycle, see
-`component-model.md`.
-
-## Two Shapes
-
-Remix tests run with `remix test`, use `remix/test` for the test framework, and use
-`remix/assert` for assertions. Two main shapes:
-
-- **Server / router tests** — drive the router with `router.fetch(new Request(...))` and assert
-  on the returned `Response`. No DOM, no browser harness.
-- **Component tests** — render a component into a real DOM `Element` with `render(...)`, or use
-  `createRoot(...)` directly when you need lower-level root control.
-
-## Server / Router Tests
-
-Treat the router as a pure `(Request) => Promise<Response>` function. Build a fresh app router
-per test (or per suite) so middleware state — sessions, in-memory storage, the database — stays
-isolated.
-
-```ts
-import * as assert from "remix/assert";
-import { describe, it } from "remix/test";
-
-import { createBookstoreRouter } from "../app/router.ts";
-import { routes } from "../app/routes.ts";
-
-describe("home", () => {
-  it("responds 200 with the home page", async () => {
-    let router = createBookstoreRouter();
-    let response = await router.fetch(
-      new Request("http://localhost" + routes.home.href()),
-    );
-
-    assert.equal(response.status, 200);
-    assert.match(await response.text(), /Welcome to the Bookstore/);
-  });
-});
-```
-
-Use `routes.<name>.href(...)` to build URLs in tests so they stay in sync with the route
-definition. For form-style POSTs, attach a `FormData` body to the `Request`. For tests that need
-a known session, swap in `createMemorySessionStorage()` and a test cookie when constructing the
-router.
-
-```ts
-import { createMemorySessionStorage } from "remix/session/memory-storage";
-import { createCookie } from "remix/cookie";
-
-let router = createBookstoreRouter({
-  sessionCookie: createCookie("session", { secrets: ["test"] }),
-  sessionStorage: createMemorySessionStorage(),
-});
-```
-
-## Test Runner Config
-
-Configure discovery and coverage in `remix-test.config.ts` or with CLI flags:
-
-```ts
-export default {
-  glob: {
-    test: "**/*.test{,.e2e}.{ts,tsx}",
-    e2e: "**/*.test.e2e.{ts,tsx}",
-    exclude: "node_modules/**",
-  },
-  coverage: {
-    dir: ".coverage",
-    include: ["app/**/*.{ts,tsx}"],
-    exclude: ["app/**/*.test.{ts,tsx}"],
-    statements: 80,
-    lines: 80,
-    branches: 70,
-    functions: 80,
-  },
-};
-```
-
-Use `remix test --coverage` to enable coverage with defaults. Use `glob.exclude` when discovery
-would otherwise enter generated output, symlinked workspaces, or other paths that should not
-produce tests.
+For lifecycle rules, see `component-model.md`. For event and ref behavior, see
+`mixins-styling-events.md`.
 
 ## Component Tests
 
-Use `render(...)` from `remix/ui/test` for most component tests. It creates a real DOM container,
-flushes the initial render, and returns `act(...)` so interactions can flush pending updates before
-assertions. Use `createRoot(container)` from `remix/ui` directly when a test needs explicit control
-over root rendering, flushing, or disposal.
-
-### Basic pattern
+Render components into a real DOM node with `createRoot(...)`.
 
 ```tsx
-import * as assert from "remix/assert";
-import { render } from "remix/ui/test";
+import { createRoot } from "remix/ui";
+import { test, expect } from "vitest";
 
-let result = render(<Counter />);
+import { Counter } from "../app/components/Counter";
 
-let button = result.$("button")!;
-await result.act(() => button.click());
+test("increments on click", async () => {
+  let host = document.createElement("div");
+  document.body.append(host);
 
-assert.match(result.container.textContent ?? "", /1/);
-result.cleanup();
+  let root = createRoot(host);
+  root.render(<Counter label="Count" />);
+  await root.flush();
+
+  let button = host.querySelector("button");
+  expect(button?.textContent).toBe("Count: 0");
+
+  button?.click();
+  await root.flush();
+
+  expect(button?.textContent).toBe("Count: 1");
+
+  root.dispose();
+  host.remove();
+});
 ```
 
-### Why act / flush
+Use real DOM events (`click`, `dispatchEvent`, `KeyboardEvent`, `PointerEvent`) instead of calling
+component internals. This keeps tests aligned with mixin behavior.
 
-- **After initial render** — ensures event listeners are attached and the DOM is ready for
-  interaction.
-- **After interactions** — applies updates from `handle.update()` calls triggered by events.
-- **After async work resolves** — applies updates from resolved `queueTask(...)` callbacks.
+## Cleanup Tests
 
-### Async operations
-
-For components with async operations in `queueTask`, use `act(...)` after each async step:
+For components that create timers, animation frames, observers, or global listeners, test that
+disposing the root stops the effect when the behavior is risky.
 
 ```tsx
-let result = render(<AsyncLoader />);
+let root = createRoot(host);
+root.render(<Ticker />);
+await root.flush();
 
-assert.equal(result.container.textContent, "Loading...");
+root.dispose();
 
-await waitForFetch();
-await result.act(() => {});
-
-assert.equal(result.container.textContent, "Expected data");
+// Advance fake timers or dispatch the global event that used to be listened to.
+// Assert no update, callback, or thrown error occurs after dispose.
 ```
 
-### Component removal
+Prefer fake timers for timer-driven UI and explicit event dispatches for global listener cleanup.
 
-Use `result.cleanup()` or `root.dispose()` to remove the component tree and verify cleanup
-behavior:
+## Async and Queued Work
+
+When a component uses `handle.queueTask(...)`, call `await root.flush()` after the interaction that
+queues the work. If the queued task awaits a promise, resolve that promise and flush again.
 
 ```tsx
-let result = render(<MyComponent />);
+button.click();
+await root.flush();
 
-assert.ok(result.$(".content"));
-
-result.cleanup();
-assert.throws(() => result.$(".content"), /cleaned up/);
+resolveFetch();
+await root.flush();
 ```
 
-### Guidelines
+Assert the final DOM state rather than private setup-scope variables.
 
-- Prefer real DOM interactions over mocking framework behavior.
-- Avoid testing implementation-only markers unless they are the only stable synchronization point.
-- One representative flow proving a behavior is better than repeating the same assertion across many
-  paths.
+## Served-App Verification
+
+For changes involving Vite, asset paths, canvas/WebGL, viewport layout, or production transforms,
+run the built or dev-served app and verify the actual URLs or interactions.
+
+Useful checks:
+
+- root page returns HTML
+- deep link returns HTML for SPA fallback
+- real JS/CSS asset returns the asset
+- missing JS/CSS/image asset returns 404
+- canvas or image assets are visible at the target viewport
+- pointer/keyboard controls still work after UI updates
+
+## Common Mistakes
+
+- Forgetting `await root.flush()` after render or interaction.
+- Testing setup-scope variables instead of user-observable DOM behavior.
+- Leaving mounted roots or DOM nodes behind between tests.
+- Using snapshots for highly dynamic UI where a targeted assertion would be clearer.
+- Skipping served-app verification for asset, canvas, or production-build changes.

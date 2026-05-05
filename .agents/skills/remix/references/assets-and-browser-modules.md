@@ -1,124 +1,101 @@
-# Assets and Browser Modules
+# Browser Assets and Modules
 
 ## What This Covers
 
-How to serve browser scripts and styles from source. Read this when the task involves:
+Client-side asset and module conventions for Remix UI apps built with Vite:
 
-- Configuring `createAssetServer` (`fileMap`, `allow`, `deny`, fingerprinting, compiler options)
-- Choosing between `staticFiles()` for already-built files and `createAssetServer()` for source
-  assets that need import rewriting, preloads, or fingerprinted URLs
-- Generating script URLs or `<link rel="modulepreload">` tags for a client entry
-- Keeping server-only files out of the browser via `deny` rules
+- Referencing files from `public/`
+- Respecting Vite `base` / `import.meta.env.BASE_URL`
+- Keeping asset paths stable for GitHub Pages or subpath deployments
+- Importing browser modules from UI components
+- Avoiding browser/runtime mismatches in client-only code
 
-For routing the URL namespace itself, see `routing-and-controllers.md`. For client entry
-hydration, see `hydration-frames-navigation.md`.
+For component lifecycle and DOM behavior, see `component-model.md` and
+`mixins-styling-events.md`. For client bootstrapping, see `hydration-frames-navigation.md`.
 
-## When To Reach For It
+## Public Assets
 
-Use `remix/assets` when the app serves browser JavaScript, TypeScript, or CSS from source files.
-This is the right tool for client entrypoints, browser-only helpers, styles under `app/assets/`,
-and monorepo code that should be compiled and served under a public URL namespace.
+Files in `public/` are served from the site root after Vite applies the configured base path. Build
+asset URLs through a helper instead of hard-coding `/...` when the app may deploy under a subpath.
 
-Use `staticFiles()` for files that already exist on disk exactly as they should be served. Use
-`createAssetServer()` for source scripts or styles that need rewriting, dependency scanning,
-preloads, sourcemaps, or fingerprinted URLs.
+```ts
+function deploymentBase(): string {
+  return import.meta.env?.BASE_URL ?? "/";
+}
 
-## Default Pattern
+export function publicAssetPath(path: string): string {
+  const base = deploymentBase();
+  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+  const normalizedPath = path.replace(/^\/+/, "");
 
-```typescript
-import * as path from "node:path";
+  return `${normalizedBase}${normalizedPath}`;
+}
+```
 
-import { createAssetServer } from "remix/assets";
-import { createRouter } from "remix/fetch-router";
+Use that helper for images, model files, icons, worker URLs, and other static files referenced by
+runtime code:
 
-let assetServer = createAssetServer({
-  rootDir: path.resolve(import.meta.dirname, ".."),
-  fileMap: {
-    "/assets/app/*path": "app/*path",
-    "/assets/packages/*path": "../packages/*path",
-  },
-  allow: ["app/assets/**", "../packages/**"],
-  deny: ["app/**/*.server.*"],
-  target: { es: "2020", chrome: "109", safari: "16.4" },
-  sourceMaps: process.env.NODE_ENV === "development" ? "external" : undefined,
-  minify: process.env.NODE_ENV === "production",
-  scripts: {
-    define: {
-      "process.env.NODE_ENV": JSON.stringify(
-        process.env.NODE_ENV ?? "development",
-      ),
-    },
-  },
-});
+```tsx
+<img src={publicAssetPath("remix-logo.svg")} alt="Remix" />
+```
 
-let router = createRouter();
+## Vite Base Path
 
-router.get("/assets/*path", ({ request }) => {
-  return assetServer.fetch(request);
+When deploying to a subpath, configure Vite's `base` and use `import.meta.env.BASE_URL` for runtime
+asset URLs. Avoid manually concatenating the repository name in components.
+
+```ts
+const base = process.env.BASE_PATH ?? "/";
+
+export default defineConfig({
+  base: base.endsWith("/") ? base : `${base}/`,
 });
 ```
 
-## Rules
+In `index.html`, use `%BASE_URL%` for static preloads or fallback markup that Vite transforms:
 
-- Treat `allow` and `deny` as the security boundary for browser-reachable source files.
-- Add a `deny` list for server-only modules such as `*.server.*`, private config, or other files
-  that should never be exposed.
-- Set `rootDir` explicitly in monorepos so relative paths resolve from the intended project root.
-- `fileMap` keys are public URL patterns and values are root-relative file path patterns. They use
-  `route-pattern` syntax on both sides.
-- Keep the same wildcard params on both sides of a `fileMap` entry so import rewriting can map
-  source files back to public URLs.
-- CSS files are compiled and served alongside scripts. Local CSS `@import` rules are rewritten and
-  fingerprinted with the same asset server routing rules.
-
-## Rendering HTML
-
-Use `getHref()` when you need the public URL for one module, and `getPreloads()` when you want
-`<link rel="modulepreload">` tags or `Link` headers for one or more entrypoints and their
-dependencies.
-
-```typescript
-let entryHref = await assetServer.getHref("app/assets/entry.ts");
-let preloads = await assetServer.getPreloads(["app/assets/entry.ts"]);
+```html
+<link rel="preload" href="%BASE_URL%landing/remix-runner.avif" as="image" />
 ```
 
-Use this when rendering documents or layouts that boot browser behavior with a known client entry.
+## Client Modules
 
-When resolving hydrated client entries during server rendering, pass the source entry ID from
-`clientEntry(import.meta.url, ...)` to `getHref()` inside `resolveClientEntry`. Keep export-name
-resolution in that render helper, and avoid hard-coding public asset URLs in source-owned component
-modules.
+Browser-only modules can import Web APIs directly when they are only loaded by the browser entry.
+For modules that might be evaluated during tooling or tests, guard browser globals:
 
-## Development vs Deployment
+```ts
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", onResize);
+}
+```
 
-In development:
+For heavy browser libraries such as WebGL, keep initialization inside component setup tasks, refs,
+or event handlers so the DOM node exists before the library reads it.
 
-- Keep `watch` enabled so source changes are picked up without restarting the server
-- Prefer stable URLs with normal revalidation
-- Enable source maps when debugging browser code
+## Asset Fallbacks
 
-In deployment:
+For static SPA builds, navigation paths should return the app shell while missing asset-like paths
+should return 404. This keeps deep links working without masking broken JS, CSS, image, or model
+URLs.
 
-- Set `watch: false`
-- Use `fingerprint: { buildId }` for long-lived immutable caching
-- Make sure `buildId` changes for each deploy
+```ts
+function looksLikeAsset(pathname: string) {
+  return /\.[^/]+$/.test(pathname);
+}
+```
 
-Fingerprinting assumes files on disk are stable and requires `watch: false`.
+If a local Vite plugin customizes fallback behavior, verify all of these cases:
 
-## Useful Compiler Options
+- `/` returns HTML
+- a deep link such as `/some/deep/path` returns HTML
+- a real built JS/CSS asset returns the correct file
+- a missing dotted path such as `/assets/not-real.js` returns 404
 
-- `minify` for production minification of scripts and styles
-- `sourceMaps` for `'external'` or `'inline'` source maps for scripts and styles
-- `sourceMapSourcePaths` for `'url'` or `'absolute'` source map paths
-- `target` as an object for shared browser targets and script-only ECMAScript output, such as
-  `{ es: '2020', chrome: '109', safari: '16.4' }`
-- `scripts.define` to replace globals such as `process.env.NODE_ENV`
-- `scripts.external` to leave specific script imports untouched
+## Common Mistakes
 
-Do not nest shared compiler options under `scripts`. Use top-level `minify`, `sourceMaps`,
-`sourceMapSourcePaths`, and `target` so they apply to styles as well as scripts.
-
-## Lifecycle
-
-If the asset server is long-lived and watching the file system, call `await assetServer.close()`
-when shutting down dev servers or disposing tests.
+- Hard-coding root-relative asset paths in code that deploys under a subpath.
+- Forgetting that `index.html` uses `%BASE_URL%`, while TypeScript uses
+  `import.meta.env.BASE_URL`.
+- Blocking real built assets when customizing SPA fallback behavior.
+- Letting missing JS/CSS/image URLs return `index.html`, which hides broken references.
+- Running DOM-dependent library setup before the target element exists.
