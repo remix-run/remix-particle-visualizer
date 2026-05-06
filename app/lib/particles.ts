@@ -211,7 +211,6 @@ export class ParticleSystem {
   private points: Points | null = null;
   private geometry: BufferGeometry | null = null;
   private material: RawShaderMaterial | null = null;
-  private count = 0;
   // Per-frame setter caches. NaN sentinels guarantee the first call after
   // init() always writes, since `NaN !== anything` is always true.
   private lastPointSize = NaN;
@@ -244,7 +243,6 @@ export class ParticleSystem {
 
   init(scene: Scene, count: number, pointSize: number) {
     this.dispose(scene);
-    this.count = count;
     this.resetSetterCaches();
 
     const positions = new Float32Array(count * 3);

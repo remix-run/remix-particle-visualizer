@@ -432,7 +432,7 @@ function writePts(
   }
 
   fs.writeFileSync(outPath, buf);
-  return { rawBytes: count * 3 * 4 + (colors ? count * 3 * 4 : 0), ptsBytes: total };
+  return { ptsBytes: total };
 }
 
 async function main() {
@@ -461,7 +461,7 @@ async function main() {
     const config = MODEL_CONFIG[file];
     const { positions, colors, accepted } = sampleSurface(scene, MAX_POINTS, config);
     const pointCount = Math.min(accepted, MAX_POINTS);
-    const { rawBytes, ptsBytes } = writePts(outPath, positions, colors, pointCount);
+    const { ptsBytes } = writePts(outPath, positions, colors, pointCount);
     const glbSize = fs.statSync(srcPath).size;
 
     console.log(

@@ -1,9 +1,5 @@
 {
-  "include": [
-    "**/*",
-    "**/.server/**/*",
-    "**/.client/**/*"
-  ],
+  "include": ["**/*", "**/.server/**/*", "**/.client/**/*"],
   "exclude": ["build", "node_modules"],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
@@ -15,13 +11,13 @@
     "jsxImportSource": "remix/ui",
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./app/*"]
+      "~/*": ["./app/*"],
     },
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "strict": true
-  }
+    "strict": true,
+  },
 }
